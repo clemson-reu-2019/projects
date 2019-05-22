@@ -1,5 +1,7 @@
 module PartitionsGen
 
+using Memoize
+
 function no_parts_exceeding(partition,n)
   for part in partition
     if n < part
@@ -12,10 +14,10 @@ export no_parts_exceeding
 
 # Generating Partitions
 
-"""
-Generate the partitions of n which have no elements lower than l
-"""
-function partitions_lowest(n,l)
+#"""
+#Generate the partitions of n which have no elements lower than l
+#"""
+@memoize function partitions_lowest(n,l)
   ps = Array{Vector{Int}, 1}()
   push!(ps,[n])
   for i in l:(n ÷ 2) #integer division
