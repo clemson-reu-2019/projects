@@ -1,7 +1,7 @@
 module QuadraticPartitions
 
 using Combinatorics
-using Partitions
+using ..PartitionsGen
 
 """
 Returns true if x + y√D is wholly positive
@@ -38,7 +38,7 @@ function quad_partition(p,q,perm)
   [p sqrow]
 end
 
-order(parti) = sortrows(parti, by=x->(x[1],x[2]))
+order(parti) = sortslices(parti, dims=1, by=x->(x[1],x[2]))
 
 """
 Takes a partition in 2-D array form (see quad_partition)
@@ -57,12 +57,26 @@ end
 Generate all partitions of a + b√D in Q(√D)
 which reside in the set O₊₊ 
 """
-function partitions_allpositive(a,b,D)
+function quad_partitions(a,b,D,allpositive=false)
+  bound = a - b*floor(Int,√D)
+  if allpositive
+    bparts_func = l -> partitions_lessterms(b,minimum((l,bound)))
+  else
+    bparts_func = l -> generalized_partitions(b,bound,minimum((l,bound)))
+  end
   ps = Array{Matrix{Int}, 1}()
   !is_wholly_positive(a,b,D) && return ps
+  
+  # manually add in partitions with no generalized term for 0
+  if !allpositive && b == 0
+    for p in partitions(a)
+      push!(ps,quad_partition(p,zeros(Int,0),[]))
+    end
+  end
+
   for pₐ in partitions(a)
-	  lₐ = length(pₐ) # - b *floor(sqrt(D))
-    for pᵦ in partitions_lessterms(b,lₐ)
+	  lₐ = length(pₐ)
+    for pᵦ in bparts_func(lₐ)
       # skip a few examples that would really waste time
       if !is_wholly_positive(maximum(pₐ),minimum(pᵦ),D)
         continue
@@ -78,14 +92,46 @@ function partitions_allpositive(a,b,D)
   end
   unique(ps)
 end
-export partitions_allpositive
+export quad_partitions
 
 """
 Generate all partitions of a + b√D in O₊₊ which satisfy
 the predicate pred
 """
-function partitions_allpositive(a,b,D,pred::Function)
-  filter(pred,partitions_allpositive(a,b,D))
+function partitions_allpositive(a,b,D,pred::Function,allpositive=true)
+  filter(pred,partitions_allpositive(a,b,D,allpositive))
 end
+
+"""
+Generate all of the generalized partitions (that is, the
+partitions with negative numbers included) which have
+parts all less than maxpart, and no more than naxNumParts
+parts.
+"""
+function generalized_partitions(b,maxNumParts,maxpart)
+  ps = Array{Vector{Int}, 1}()
+  plists = Array{Array{Vector{Int}, 1}}(undef, maxpart*maxNumParts)
+  for i = 1:maxpart*maxNumParts
+    plists[i] = partitions_lessterms_leq(i,maxNumParts,maxpart)
+  end
+  
+  if b != 0 
+    0 < b && append!(ps,plists[b])
+    b < 0 && append!(ps,-1 .* reverse.(plists[-b]))
+  end
+  for i = abs(b)+1:maxpart*maxNumParts
+    for pᵢ in plists[i]
+      l = length(pᵢ)
+      compat = filter(p -> length(p) <= maxNumParts-l, plists[i-abs(b)])
+      for pm in compat
+        gen_p = [-reverse(pm); pᵢ]
+        b < 0 && (gen_p = -reverse(gen_p))
+        push!(ps,gen_p)
+      end
+    end
+  end
+  ps
+end
+export generalized_partitions
 
 end#module

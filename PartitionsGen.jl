@@ -1,4 +1,4 @@
-module Partitions
+module PartitionsGen
 
 function no_parts_exceeding(partition,n)
   for part in partition
@@ -55,21 +55,27 @@ end
 """
 Generate all partitions of n which satisfy predicate pred
 """
-function partitions_pred(n,pred::Function)
+function partitions_of(n,pred::Function)
   filter(pred,partitions_of(n))
 end
-export partitions_pred
 
 """
 Generate all partitions of n which are less than or equal to m
 """
-partitions_leq(n,m) = partitions_pred(n, p -> no_parts_exceeding(p,m))
+partitions_leq(n,m) = partitions_of(n, p -> no_parts_exceeding(p,m))
 export partitions_leq
 
 """
 Generate all partitions of n which have m or less terms
 """
-partitions_lessterms(n,m) = partitions_pred(n,p -> length(p) <= m)
+partitions_lessterms(n,m) = partitions_of(n,p -> length(p) <= m)
 export partitions_lessterms
+
+"""
+Generate all partitions of n which have m or less terms and which
+have each part less than or equal to l
+"""
+partitions_lessterms_leq(n,m,l) = partitions_of(n,p -> no_parts_exceeding(p,l) && length(p) <= m)
+export partitions_lessterms_leq
 
 end#module
