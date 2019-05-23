@@ -26,6 +26,7 @@ function O_plus_vis(D)
   end
   A'
 end
+
 function symbolic_gen_O_plusplus(k)
   n = Vector{SymPy.Sym}(k)
   x = Sym("x")
@@ -36,5 +37,35 @@ function symbolic_gen_O_plusplus(k)
   end
   expr
 end
+
+function parts(x)
+  (a,b) = (x.args[1],x.args[2])
+  b = b/√Sym(3)
+  (a,b)
+end
+
+function get_distinguished_element(a,b,D=3)
+  D != 3 && return -1
+  unit = 2 - √Sym(3)
+  x₀ = Sym(a) + Sym(b)*√Sym(D)
+  (a_best, b_best) = parts(x₀)
+  i = 0
+  xᵢ = x₀
+  while true
+	i += 1
+	xᵢ₊₁ = simplify(xᵢ * expand(unit^i))
+	(a, b) = parts(xᵢ₊₁)
+	if is_wholly_positive(a,b,D) && 
+		abs(a^2 + b^2) < abs(a_best^2 + b_best^2) # euclidean norm
+      (a_best, b_best) = (a,b)
+	  xᵢ = xᵢ₊₁
+  	else
+	  break
+  	end
+  end
+  (a_best,b_best)
+end
+
+
 
 end#module
