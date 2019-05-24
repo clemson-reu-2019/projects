@@ -6,6 +6,7 @@ include("./QuadraticPartitions.jl")
 using .PartitionsGen
 using .QuadraticPartitions
 using SymPy
+using AbstractAlgebra
 
 function O_plusplus_vis(D)
   # first index is a, second is b
@@ -27,13 +28,40 @@ function O_plus_vis(D)
   A'
 end
 
-function symbolic_gen_O_plusplus(k)
-  n = Vector{SymPy.Sym}(k)
+function abstract_symbolic_gen(k,D)
+  R, (x, y) = PolynomialRing(ZZ, ["x", "y"])
+  expr = 1
+  for i = 1:k 
+    expr *= (1 - x^i)
+  end 
+  for i in 1:k
+	for nᵢ = convert(Int,ceil(i*√D)):k
+		expr *= (1 - (x^(nᵢ)) * y^i )
+	end
+  end
+  expr
+end
+
+function symbolic_gen_O_plusplus(k,D)
+  symbolic_gen_euler(k)*symbolic_gen_sqareroot(k,k,D)
+end
+
+function symbolic_gen_sqareroot(k,j,D)
   x = Sym("x")
   expr = Sym(1)
   for i in 1:k
-    ni = Sym("n$i")
-    expr *= (1 - x^(ni + Sym(i)*√Sym(2)))
+	for nᵢ = convert(Int,ceil(i*√D)):j
+      expr *= (1 - x^(nᵢ + Sym(i)*√Sym(2)))
+	end
+  end
+  expr
+end
+
+function symbolic_gen_euler(k)
+  x = Sym("x")
+  expr = Sym(1)
+  for i = 1:k
+	expr *= (1 - x^i)
   end
   expr
 end

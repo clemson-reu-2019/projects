@@ -7,7 +7,7 @@ using ..PartitionsGen
 Returns true if x + y√D is wholly positive
 """
 function is_wholly_positive(x,y,D)
-  0 < x && 3y^2 < x^2
+  0 < x && D*y^2 < x^2
 end
 export is_wholly_positive
 
@@ -65,8 +65,9 @@ function quad_partitions(a,b,D,allpositive=false)
     bparts_func = l -> generalized_partitions(b,bound,minimum((l,bound)))
   end
   ps = Array{Matrix{Int}, 1}()
+
   !is_wholly_positive(a,b,D) && return ps
-  
+
   # manually add in partitions with no generalized term for 0
   if !allpositive && b == 0
     for p in partitions(a)
@@ -109,8 +110,10 @@ parts all less than maxpart, and no more than naxNumParts
 parts.
 """
 function generalized_partitions(b,maxNumParts,maxpart)
+  maxpart == 1 && return Array{Vector{Int}, 1}([[b]])
+
   ps = Array{Vector{Int}, 1}()
-  plists = Array{Array{Vector{Int}, 1}}(undef, maxpart*maxNumParts)
+  plists = Array{Array{Vector{Int}, 1}}(undef, maximum((maxpart*maxNumParts,b)))
   for i = 1:maxpart*maxNumParts
     plists[i] = partitions_lessterms_leq(i,maxNumParts,maxpart)
   end
