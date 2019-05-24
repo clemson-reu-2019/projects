@@ -78,6 +78,7 @@ function quad_partitions(a,b,D,allpositive=false)
   for pₐ in partitions(a)
 	  lₐ = length(pₐ)
     for pᵦ in bparts_func(lₐ)
+	  pᵦ == [] && continue
       # skip a few examples that would really waste time
       if !is_wholly_positive(maximum(pₐ),minimum(pᵦ),D)
         continue
@@ -111,6 +112,7 @@ parts.
 """
 function generalized_partitions(b,maxNumParts,maxpart)
   maxpart == 1 && return Array{Vector{Int}, 1}([[b]])
+  maxpart*maxNumParts < b && return Array{Vector{Int}, 1}([[]])
 
   ps = Array{Vector{Int}, 1}()
   plists = Array{Array{Vector{Int}, 1}}(undef, maximum((maxpart*maxNumParts,b)))
