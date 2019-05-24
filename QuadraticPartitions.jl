@@ -112,16 +112,17 @@ parts.
 """
 function generalized_partitions(b,maxNumParts,maxpart)
   maxpart == 1 && return Array{Vector{Int}, 1}([[b]])
-  maxpart*maxNumParts < b && return Array{Vector{Int}, 1}([[]])
+  #maxpart*maxNumParts < b && return Array{Vector{Int}, 1}([[]])
 
   ps = Array{Vector{Int}, 1}()
-  plists = Array{Array{Vector{Int}, 1}}(undef, maximum((maxpart*maxNumParts,b)))
-  for i = 1:maxpart*maxNumParts
+  N = maximum((maxpart*maxNumParts,b))
+  plists = Array{Array{Vector{Int}, 1}}(undef, N)
+  for i = 1:N
     plists[i] = partitions_lessterms_leq(i,maxNumParts,maxpart)
   end
   
   if b != 0 
-    0 < b && append!(ps,plists[b])
+	0 < b && append!(ps,partitions_lessterms(b,maxNumParts))
     b < 0 && append!(ps,-1 .* reverse.(plists[-b]))
   end
   for i = abs(b)+1:maxpart*maxNumParts
