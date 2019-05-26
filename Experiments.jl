@@ -139,4 +139,16 @@ function process_macaulay2_data(tuples)
   recurGrid
 end
 
+function generate_norm_array(N,D)
+  NORMS = zeros(Int, N+1,N+1)
+  for a = 0:N
+    for b = 0:N
+      if Experiments.QuadraticPartitions.is_wholly_positive(a,b,D)
+        NORMS[a+1,b+1] = a^2 - D*b^2
+      end
+    end
+  end
+  NORMS
+end
+
 end#module
