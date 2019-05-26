@@ -7,6 +7,7 @@ using .PartitionsGen
 using .QuadraticPartitions
 using SymPy
 using AbstractAlgebra
+using DelimitedFiles
 
 function O_plusplus_vis(D)
   # first index is a, second is b
@@ -94,6 +95,48 @@ function get_distinguished_element(a,b,D=3)
   (a_best,b_best)
 end
 
+"""
+take the output from expander.m2 and process it into a form
+that can be copied and pasted into julia
+"""
+function process_macaulay2_polynomial(filename)
+  replace_at(s,i,new) = s[1:i-1] * new * s[i+1:end]
+  
+  m2out = read(filename, String)
+  # remove all ---- lines
+  lines = split(m2out, "\n")
+  lines = filter(line -> !occursin("-----", line), lines)
+  nodashes = join(lines)
+  # remove all whitespace
+  nowhsp = filter(x -> !isspace(x), nodashes)
+  # replace first { with [
+  i = findfirst("{",nowhsp).start
+  opensquare = replace_at(nowhsp,i,"[")
+  # replace last } with ]
+  i = findlast("}",opensquare).start
+  clsdsquare = replace_at(opensquare,i,"]")
+  # replace all { with ( and } with )
+  noopenbrak = replace(clsdsquare, "{" => "(")
+  noclsdbrak = replace(noopenbrak, "}" => ")")
+  open(filename * "jl", "w") do f
+	write(f, noclsdbrak)
+  end
+end
 
+function process_macaulay2_data(tuples)
+  sparse = zeros(Int, length(tuples), 3)
+  for i = 1:length(tuples)
+    ((a,b),c) = tuples[i]
+    sparse[i,:] = [a,b,c]
+  end
+  maxA = maximum(sparse[:,1])
+  maxB = maximum(sparse[:,2])
+  recurGrid = zeros(Int, maxA+1, maxB+1)
+  for i = 1:length(tuples)
+    ((a,b),c) = tuples[i]
+    recurGrid[a+1,b+1] = c
+  end
+  recurGrid
+end
 
 end#module

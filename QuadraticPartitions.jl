@@ -1,6 +1,8 @@
 module QuadraticPartitions
 
 using Combinatorics
+using Memoize
+using DelimitedFiles
 using ..PartitionsGen
 
 """
@@ -10,6 +12,14 @@ function is_wholly_positive(x,y,D)
   0 < x && D*y^2 < x^2
 end
 export is_wholly_positive
+
+sqrt2_80_dat = convert(Matrix{Int}, readdlm("80.dat"))
+
+function euler_coef(a,b,D,allpositive)
+  D != 2 && (print("2 only supported!"); return 0) # not implemented
+  !allpositive && (print("Oplus only supported!"); return 0) # not implemented
+  sqrt2_80_dat[a+1,b+1]
+end
 
 """
 Takes a partition p of some integer a, and 
@@ -55,7 +65,12 @@ end
 
 """
 Generate all partitions of a + b√D in Q(√D)
-which reside in the set O₊₊ 
+
+If allpositive is true, then search for partitions
+in O₊₊
+
+Otherwise, if allpositive is false, 
+find partitions in O₊ 
 """
 function quad_partitions(a,b,D,allpositive=false)
   bound = a - b*floor(Int,√D)
@@ -100,8 +115,8 @@ export quad_partitions
 Generate all partitions of a + b√D in O₊₊ which satisfy
 the predicate pred
 """
-function partitions_allpositive(a,b,D,pred::Function,allpositive=true)
-  filter(pred,partitions_allpositive(a,b,D,allpositive))
+function quad_partitions(a,b,D,pred::Function,allpositive=true)
+  filter(pred,quad_partitions(a,b,D,allpositive))
 end
 
 """
@@ -139,5 +154,91 @@ function generalized_partitions(b,maxNumParts,maxpart)
   ps
 end
 export generalized_partitions
+
+#"""
+#Generate the partition number in a brute-force manner
+#"""
+@memoize function partition_number_brute(a,b,D,allpositive=false)
+  (a == 0 && b == 0) && return 1
+  length(quad_partitions(a,b,D,allpositive))
+end
+
+"""
+Give the biggest value of a and b where the 
+brute force algorithm is performant, tested manually.
+"""
+function p_num_brute_force_bound(D,allpositive=false)
+  (D == 2 && allpositive) && return 10
+  (D == 2 && !allpositive) && return 7
+  (D == 3 && allpositive) && return 9
+  (D == 3 && !allpositive) && return 7
+  (D == 5 && allpositive) && return 11
+  (D == 5 && !allpositive) && return 7
+  5 # a decent bet that this will be fast
+end
+
+#"""
+#Calculate the partition number p(n) of n = a + b√D
+#using the recursive euler expansion
+#
+#if allpositive is true, calculates p₊(n)
+#"""
+@memoize function partition_number(a,b,D,allpositive=false)
+  !allpositive && return 0 # not implemented for Oplus yet
+
+  # b is necessarily less than a
+  if a <= p_num_brute_force_bound(D,allpositive) 
+    #print("$a found: brute\n")
+	  return partition_number_brute(a,b,D,allpositive)
+  end
+
+  #p = partition_number(a-1,b,D,allpositive)
+  #print("$a-1:$b, $p\n")
+  p = 0
+  for i = 0:a-1
+	  for j = 0:b
+		  eul = euler_coef(a-i,b-j,D,allpositive)
+      eul == 0 && continue
+      #println("$i,$j")
+      p -= eul * partition_number(i,j,D,allpositive)
+      #print("running total $a + $b√2: $p\n")
+    end
+  end
+  p
+end
+export parition_number
+
+"""
+Generate a 2-D grid of values of p(n) of size N
+by brute-forcing it.
+
+If allpositive is true, generate p₊(n) instead
+"""
+function partitions_grid_brute(N,D,allpositive=false)
+  A = zeros(Int,N+1,N+1)
+  for i = 0:N
+    A[:,i+1] = length.(quad_partitions.(0:N,i,D,allpositive))
+  end
+  A'
+end
+
+"""
+Generate a 2-D grid of values of p(n) of size N
+by using the recursive Euler algorithm.
+
+If allpositive is true, generate p₊(n) instead
+"""
+function partitions_grid(N,D,allpositive=false)
+  A = zeros(Int,N+1,N+1)
+  for i = 0:N
+    for j = 0:N
+      if is_wholly_positive(i,j,D)
+        A[i+1,j+1] = partition_number(i,j,D,allpositive)
+      end
+    end
+  end
+  A'
+end
+export partitions_grid
 
 end#module
