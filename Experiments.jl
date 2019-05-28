@@ -8,6 +8,8 @@ using .QuadraticPartitions
 using SymPy
 using AbstractAlgebra
 using DelimitedFiles
+using Plots
+using PlotUtils
 
 function O_plusplus_vis(D)
   # first index is a, second is b
@@ -20,11 +22,10 @@ function O_plusplus_vis(D)
   #   with Plots.jl
 end
 
-function O_plus_vis(D)
-  size = 6
-  A = zeros(size*2 + 1, size*2 + 1) # the 1 is for zero
-  for i = -6:6
-    A[:,i+size+1] = length.(quad_partitions.(-6:6,i,D,false))
+function O_plus_vis(D,size=6)
+  A = zeros(Int, size*2 + 1, size*2 + 1) # the 1 is for zero
+  for i = -size:size
+    A[:,i+size+1] = length.(quad_partitions.(-size:size,i,D,false))
   end
   A'
 end
@@ -149,6 +150,13 @@ function generate_norm_array(N,D)
     end
   end
   NORMS
+end
+
+function nonzerocoefs(M,level=-10000)
+  A = deepcopy(M)
+  A[A .== 0] .= level
+  heatmap(A, yflip=true, c=cgrad([:red,:blue],[0.1,1]))
+  gui()
 end
 
 end#module
