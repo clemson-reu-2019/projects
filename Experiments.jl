@@ -2,9 +2,11 @@ module Experiments
 
 include("./PartitionsGen.jl")
 include("./QuadraticPartitions.jl")
+#include("./EulerCoefficients.jl")
 
 using .PartitionsGen
 using .QuadraticPartitions
+#using .EulerCoefficients
 using SymPy
 using AbstractAlgebra
 using DelimitedFiles
@@ -37,9 +39,9 @@ function abstract_symbolic_gen(k,D)
     expr *= (1 - x^i)
   end 
   for i in 1:k
-	for nᵢ = convert(Int,ceil(i*√D)):k
-		expr *= (1 - (x^(nᵢ)) * y^i )
-	end
+    for nᵢ = convert(Int,ceil(i*√D)):k
+		  expr *= (1 - (x^(nᵢ)) * y^i )
+    end
   end
   expr
 end
@@ -52,9 +54,9 @@ function symbolic_gen_sqareroot(k,j,D)
   x = Sym("x")
   expr = Sym(1)
   for i in 1:k
-	for nᵢ = convert(Int,ceil(i*√D)):j
+    for nᵢ = convert(Int,ceil(i*√D)):j
       expr *= (1 - x^(nᵢ + Sym(i)*√Sym(2)))
-	end
+    end
   end
   expr
 end
@@ -135,7 +137,7 @@ function process_macaulay2_data(tuples)
   recurGrid = zeros(Int, maxA+1, maxB+1)
   for i = 1:length(tuples)
     ((a,b),c) = tuples[i]
-    recurGrid[a+1,b+1] = c
+	0 <= b && (recurGrid[a+1,b+1] = c)
   end
   recurGrid
 end

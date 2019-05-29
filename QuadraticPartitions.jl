@@ -14,11 +14,21 @@ end
 export is_wholly_positive
 
 sqrt2_80_dat = convert(Matrix{Int}, readdlm("80.dat"))
+sqrt2_plus_50_dat = convert(Matrix{Int}, readdlm("50plus.dat"))
 
+"""
+Returns the euler coeffieicent corresponding
+to a certain wholly positive number.
+"""
 function euler_coef(a,b,D,allpositive)
   D != 2 && (print("2 only supported!"); return 0) # not implemented
-  !allpositive && (print("Oplus only supported!"); return 0) # not implemented
-  sqrt2_80_dat[a+1,b+1]
+  !is_wholly_positive(a,b,D) && return 0
+
+  if allpositive 
+    sqrt2_80_dat[a+1,b+1]
+  else
+    sqrt2_plus_50_dat[a+1,convert(Int, abs(b))+1]
+  end
 end
 
 """
@@ -129,6 +139,9 @@ function generalized_partitions(b,maxNumParts,maxpart)
   maxpart == 1 && return Array{Vector{Int}, 1}([[b]])
   #maxpart*maxNumParts < b && return Array{Vector{Int}, 1}([[]])
 
+  # maybe this belongs here for type safety?
+  b = convert(Int, abs(b))
+
   ps = Array{Vector{Int}, 1}()
   N = maximum((maxpart*maxNumParts,b))
   plists = Array{Array{Vector{Int}, 1}}(undef, N)
@@ -168,6 +181,7 @@ Give the biggest value of a and b where the
 brute force algorithm is performant, tested manually.
 """
 function p_num_brute_force_bound(D,allpositive=false)
+  return 3
   (D == 2 && allpositive) && return 10
   (D == 2 && !allpositive) && return 7
   (D == 3 && allpositive) && return 9
@@ -184,29 +198,48 @@ end
 #if allpositive is true, calculates p₊(n)
 #"""
 @memoize function partition_number(a,b,D,allpositive=false)
-  !allpositive && return 0 # not implemented for Oplus yet
+  #println("Starting $a + $b√2")
 
-  # b is necessarily less than a
-  if a <= p_num_brute_force_bound(D,allpositive) 
-    #print("$a found: brute\n")
-	  return partition_number_brute(a,b,D,allpositive)
+  if a == 0 && b == 0
+    return 1
   end
+  # b is necessarily less than a
+  #if a <= p_num_brute_force_bound(D,allpositive) 
+  #  print("$a found: brute\n")
+	#  return partition_number_brute(a,b,D,allpositive)
+  #end
 
   #p = partition_number(a-1,b,D,allpositive)
   #print("$a-1:$b, $p\n")
+
   p = 0
   for i = 0:a-1
-	  for j = 0:b
-		  eul = euler_coef(a-i,b-j,D,allpositive)
-      eul == 0 && continue
+    if allpositive
+      start = 0
+      last = b
+    else
+      bound = ceil(Int, i*√D)
+      start = -bound#- ceil(Int, i*√D)
+      last = bound
+    end
+    #println("START: $start for $i")
+
+	  for j = start:last
       #println("$i,$j")
+		  eul = euler_coef(a-i,b-j,D,allpositive)
+      #println("  ...found $eul")
+      eul == 0 && continue
+      #println("nonzero coef found!")
+      #pn = partition_number(i,j,D,allpositive)
       p -= eul * partition_number(i,j,D,allpositive)
       #print("running total $a + $b√2: $p\n")
+      #println("term added to $a + $b√2 from e_$(a-i),$(b-j): - $eul * $pn")
     end
   end
+  #println("done computing for $a + $b√2: got $p")
   p
 end
-export parition_number
+export partition_number
 
 """
 Generate a 2-D grid of values of p(n) of size N
