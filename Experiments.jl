@@ -161,4 +161,16 @@ function nonzerocoefs(M,level=-10000)
   gui()
 end
 
+function plotrow(M,row)
+  G = deepcopy(M[row,:])
+  plot(G)
+  gui()
+end
+
+function logwithzeros(M,level=0.1)
+  N = deepcopy(M)
+  N[N .== 0] .= level
+  log.(N)
+end
+
 end#module
