@@ -126,6 +126,10 @@ function process_macaulay2_polynomial(filename)
   end
 end
 
+"""
+Process the data from macaulay2 into an array which can be
+used to compute partition numbers
+"""
 function process_macaulay2_data(tuples)
   sparse = zeros(Int, length(tuples), 3)
   for i = 1:length(tuples)
