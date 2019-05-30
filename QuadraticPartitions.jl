@@ -142,7 +142,6 @@ Returns the euler coeffieicent corresponding
 to a certain wholly positive number.
 """
 function euler_coef(a,b,D,allpositive)
-  D != 2 && (print("2 only supported!"); return 0) # not implemented
   !is_wholly_positive(a,b,D) && return 0
 
   key = (D,allpositive)
