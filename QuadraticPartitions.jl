@@ -199,6 +199,7 @@ end
 #"""
 @memoize function partition_number(a,b,D,allpositive=false)
   #println("Starting $a + $b√2")
+  0 < b && return partition_number(a,-b,D,allpositive)
 
   if a == 0 && b == 0
     return 1
@@ -220,7 +221,7 @@ end
     else
       bound = ceil(Int, i*√D)
       start = -bound#- ceil(Int, i*√D)
-      last = bound
+      last = b+bound
     end
     #println("START: $start for $i")
 

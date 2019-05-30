@@ -173,4 +173,10 @@ function logwithzeros(M,level=0.1)
   log.(N)
 end
 
+getpointsequal(M,n) = foldl((A,x) -> [A; x[1] x[2]], findall(M .== n), init=zeros(Int,0,2))
+
+function timesunit(a,b,n,U =3 + 2*√Sym(2))
+  (a + b*√Sym(2)) * (U^n)
+end
+
 end#module
