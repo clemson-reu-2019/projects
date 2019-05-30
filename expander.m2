@@ -52,13 +52,6 @@ m = 30 -- or put whatever you want
 n = 20
 R = ZZ[x,y] / (ideal(x^m, y^n))
 
-expandgeomseries = (k,x,N) -> (
-  g = 1;
-  for i from 1 to N do (
-    g = g + x^i;
-  );
-  k*g
-)
 
 
 -- expandlessthan:
@@ -79,9 +72,18 @@ expandgeomseries = (k,x,N) -> (
 --   with terms up to 30 + 20*sqrt(2), 
 --   with each part being less than 3 + 1*sqrt(2)
 
+--- START COPYING HERE
+
+expandgeomseries = (k,x,N) -> (
+  g = 1;
+  for i from 1 to N do (
+    g = g + x^i;
+  );
+  k*g
+)
 
 expandlessthan = (a,b,maxA,maxB,d) -> (
-  R := ZZ[x,y] / (ideal(x^(maxA+1),y^(maxB+1)))
+  R := ZZ[x,y] / (ideal(x^(maxA+1),y^(maxB+1)));
   f = 1;
   for i from 1 to a do (
     f = f * expandgeomseries(1,x^i,max(maxA,maxB));
@@ -94,3 +96,5 @@ expandlessthan = (a,b,maxA,maxB,d) -> (
   );
   f
 )
+
+--- STOP COPYING HERE
