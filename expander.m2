@@ -60,15 +60,36 @@ expandgeomseries = (k,x,N) -> (
   k*g
 )
 
-expandlessthan = (a,b,maxim,d) -> (
+
+-- expandlessthan:
+-- calculate the expansion for p_r(n) (where r = a + b*sqrt(d))
+--   that is, the number of partitions with parts
+--   less than r.
+--
+-- Parameters:
+-- a - the integer part of r
+-- b - the quadratic part of r
+-- maxA - how many integer-part terms to compute
+-- maxB - how many quadratic-part terms to compute
+-- d - the square root of the quadratic field
+--
+-- Example: 
+-- expandlessthan(3,1,30,20,2)
+-- would caluclate the expansion for p_r(n)
+--   with terms up to 30 + 20*sqrt(2), 
+--   with each part being less than 3 + 1*sqrt(2)
+
+
+expandlessthan = (a,b,maxA,maxB,d) -> (
+  R := ZZ[x,y] / (ideal(x^(maxA+1),y^(maxB+1)))
   f = 1;
   for i from 1 to a do (
-    f = f * expandgeomseries(1,x^i,maxim);
+    f = f * expandgeomseries(1,x^i,max(maxA,maxB));
   );
 
   for i from 1 to b do (
     for j from ceiling(i * sqrt(d)) to a do (
-      f = f * expandgeomseries(1,(x^j)*(y^i),maxim);
+      f = f * expandgeomseries(1,(x^j)*(y^i),max(maxA,maxB));
     );
   );
   f

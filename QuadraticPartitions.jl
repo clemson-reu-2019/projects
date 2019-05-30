@@ -221,13 +221,13 @@ end
     else
       bound = ceil(Int, i*√D)
       start = -bound#- ceil(Int, i*√D)
-      last = b+bound
+      last = +bound
     end
     #println("START: $start for $i")
 
-	  for j = start:last
+    for j = start:last
       #println("$i,$j")
-		  eul = euler_coef(a-i,b-j,D,allpositive)
+      eul = euler_coef(a-i,b-j,D,allpositive)
       #println("  ...found $eul")
       eul == 0 && continue
       #println("nonzero coef found!")
