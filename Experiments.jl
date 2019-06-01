@@ -12,6 +12,7 @@ using AbstractAlgebra
 using DelimitedFiles
 using Plots
 using PlotUtils
+using LsqFit
 
 function O_plusplus_vis(D)
   # first index is a, second is b
@@ -147,9 +148,10 @@ function process_macaulay2_data(tuples)
 end
 
 function generate_norm_array(N,D)
-  NORMS = zeros(Int, N+1,N+1)
+  M = ceil(Int, N/√D)
+  NORMS = zeros(Int, N+1,M+1)
   for a = 0:N
-    for b = 0:N
+    for b = 0:M
       if Experiments.QuadraticPartitions.is_wholly_positive(a,b,D)
         NORMS[a+1,b+1] = a^2 - D*b^2
       end
@@ -181,6 +183,26 @@ getpointsequal(M,n) = foldl((A,x) -> [A; x[1] x[2]], findall(M .== n), init=zero
 
 function timesunit(a,b,n,U =3 + 2*√Sym(2))
   (a + b*√Sym(2)) * (U^n)
+end
+
+quadratic_mult((a,b),(c,d),D) = (a*c + D*b*d, b*c + a*d)
+
+function modelexpsin(ydata,c₀)
+  @. model(x,c) = c[1]*exp(c[2]*x)*sin(c[3]*√(x+ c[4]))
+  curve_fit(model, 1:length(ydata),ydata,c₀)
+end
+
+function linreg(x,y)
+  @. model(x,c) = c[1]*x + c[2]
+  curve_fit(model,x,y,[1.0,0.0])
+end
+#  -0.9734146840101862 
+#   0.18881479886532654
+#   9.13793675064356   
+# 104.04780167727091
+
+function highestBFor(a,D)
+  floor(Int, a / √D)
 end
 
 end#module

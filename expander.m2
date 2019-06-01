@@ -30,20 +30,21 @@ f := 1;
 
 for i from 1 to a do (
   f = f * (1 - x^i);
-  f = part(0,a-1,{1,0},f)
+  f = part(0,a,{1,0},f)
 );
 
-for i from 1 to b do (
+bnd = b + ceiling(a * sqrt(d));
+
+for i from 1 to bnd do (
   for j from ceiling(i * sqrt(d)) to a do (
     f = f * (1 - (x^j)*(y^i))*(1 - (x^j)*(y^-i));
-    f = part(0,a-1,{1,0},f);
-    bnd = b + ceiling(a * sqrt(d));
-    f = part(-(bnd-1),bnd-1,{0,1},f); 
+    f = part(0,a,{1,0},f);
+    f = part(-(bnd),bnd,{0,1},f); 
 ));
 
-f = part(-(b-1),b-1,{0,1},f);
+f = part(-(b),b,{0,1},f);
 
-f
+listForm(f)
 )
 
 -- This calculates the number of partitions with less than a certain number of terms --
