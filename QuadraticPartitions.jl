@@ -217,7 +217,7 @@ function quad_partitions(a,b,D,allpositive=false)
   if allpositive
     bparts_func = l -> partitions_lessterms(b,minimum((l,bound)))
   else
-    bparts_func = l -> generalized_partitions(b,bound,minimum((l,bound)))
+    bparts_func = l -> generalized_partitions(b,minimum((l,bound)),bound)
   end
   ps = Array{Matrix{Int}, 1}()
 
@@ -231,7 +231,7 @@ function quad_partitions(a,b,D,allpositive=false)
   end
 
   for pₐ in partitions(a)
-	  lₐ = length(pₐ)
+    lₐ = length(pₐ)
     for pᵦ in bparts_func(lₐ)
 	  pᵦ == [] && continue
       # skip a few examples that would really waste time
