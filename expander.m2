@@ -98,10 +98,9 @@ expandlessthan = (a,b,maxA,maxB,d) -> (
 )
 
 --- STOP COPYING HERE
-
-
 ExpandRealMetric = (a,b,maxA,maxB,d) -> (
   R := ZZ[x,y] / (ideal(x^(maxA+1),y^(maxB+1)));
+	use R;
   f = 1;
   for i from 1 to a do (
     f = f * expandgeomseries(1,x^i,max(maxA,maxB));
@@ -110,11 +109,13 @@ ExpandRealMetric = (a,b,maxA,maxB,d) -> (
   for i from 1 to b do (
     for j from 1 to a do (
 	if j-(i*sqrt(d)) > 0
-	and j+(i*sqrt(d)) <= a + sqrt(d) then
+	and j+(i*sqrt(d)) < (a-1) + (b*sqrt(d)) then
       f = f * expandgeomseries(1,(x^j)*(y^i),max(maxA,maxB));
     );
   );
   f
 )
+
+
 
 
