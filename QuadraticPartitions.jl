@@ -396,9 +396,10 @@ by using the recursive Euler algorithm.
 If allpositive is true, generate p₊(n) instead
 """
 function partitions_grid(N,D,allpositive=false)
-  A = zeros(Int,N+1,N+1)
+  maxB = floor(Int, N / √D)
+  A = zeros(Int,N+1,maxB+1)
   for i = 0:N
-    for j = 0:N
+    for j = 0:maxB
       if is_wholly_positive(i,j,D)
         A[i+1,j+1] = partition_number(i,j,D,allpositive)
       end

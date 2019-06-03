@@ -125,6 +125,7 @@ function process_macaulay2_polynomial(filename)
   open(filename * "jl", "w") do f
 	write(f, noclsdbrak)
   end
+  evalfile(filename * "jl")
 end
 
 """
@@ -145,6 +146,12 @@ function process_macaulay2_data(tuples)
 	0 <= b && (recurGrid[a+1,b+1] = c)
   end
   recurGrid
+end
+
+function process_new_coefficients(filename,D,allpositive)
+  tuples = process_macaulay2_polynomial(filename)
+  coefs = process_macaulay2_data(tuples)
+  QuadraticPartitions.incorporate_coefficients(coefs,D,allpositive)
 end
 
 function generate_norm_array(N,D)
