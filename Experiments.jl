@@ -208,6 +208,16 @@ end
 #   9.13793675064356   
 # 104.04780167727091
 
+function modelexpsqrt(ydata,c₀)
+  @. model(x,c) = c[1]*exp(c[2]*√x)
+  curve_fit(model,1:length(ydata),ydata,c₀)
+end
+
+function modelsqrt(ydata,c₀)
+  @. model(x,c) = c[1]*√x + c[2]
+  curve_fit(model,1:length(ydata),ydata,c₀)
+end
+
 function highestBFor(a,D)
   floor(Int, a / √D)
 end
