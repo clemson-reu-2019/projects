@@ -194,6 +194,14 @@ end
 
 quadratic_mult((a,b),(c,d),D) = (a*c + D*b*d, b*c + a*d)
 
+function quadratic_power((a,b),N,D)
+  prod = (1,0)
+  for i = 1:N
+    prod = quadratic_mult(prod,(a,b),D)
+  end
+  prod
+end
+
 function modelexpsin(ydata,c₀)
   @. model(x,c) = c[1]*exp(c[2]*x)*sin(c[3]*√(x+ c[4]))
   curve_fit(model, 1:length(ydata),ydata,c₀)
@@ -221,5 +229,87 @@ end
 function highestBFor(a,D)
   floor(Int, a / √D)
 end
+
+# goes one member beyond limitA right now
+function pellClassFor(a,b,D=2,unit=(3,2),limitA=100)
+  class = [(a,b)]#Array{Tuple{typeof(a),typeof(b)}}(undef,0)
+  current = (a,b)
+  while current[1] <= limitA
+    current = quadratic_mult(current,unit,D)
+    class = [class; current]
+  end
+
+  conjunit = (unit[1], -unit[2])
+  current = (a,b)
+  while current[1] <= limitA
+    current = quadratic_mult(current,conjunit,D)
+    class = [class; current]
+  end
+  class
+end
+
+samepellclass(cl1,cl2) = (Set(cl1) == Set(cl2))
+
+function addconjugates(pellclass)
+  class = Set(pellclass)
+  for (a,b) in pellclass
+    push!(class,(a,-b))
+  end
+  collect(class)
+end
+
+const PellClass{T} = Array{Tuple{T,T}}
+
+function findpellclasses(N,D=2,unit=(3,2))
+  norms = generate_norm_array(N,D)
+  classes = Dict{Int,Array{PellClass{Int}}}()
+  boundOnFundSol = floor(Int,N/√(unit[1] + unit[2]*√D))
+
+  pushclass(c,i) = haskey(classes,i) ? push!(classes[i], c) : classes[i] = [c]
+
+  for i = 1:boundOnFundSol
+    matches = [(ind[1],ind[2]) for ind in findall(norms .== i)]
+    matches = map(m -> m .- 1, matches)
+
+    while 0 < length(matches)
+      firstclass = pellClassFor(matches[1]...,D,unit,N)
+      pushclass(firstclass, i)
+
+      accumSet = addconjugates(firstclass)
+      matches = filter(m -> !(m in accumSet), matches)
+    end
+  end
+  classes
+end
+
+function comparepellclasses(N,D=2,unit=(3,2),allclasses=nothing)
+  allclasses == nothing && (allclasses = Experiments.findpellclasses(N))
+  println("Evaluating all pell classes for counterexample")
+  outliers = filter(pair -> 1 < length(pair[2]),allclasses)
+  for (norm,classes) in outliers
+    # minimum a
+    part_nums = zeros(Int,length(classes))
+    for i = 1:length(classes)
+      minind = argmin(map(t -> t[1],classes[i]))
+      part_nums[i] = partition_number(classes[i][minind]...,D)
+    end
+    #println("$part_nums")
+    if !allunique(part_nums)
+      println("Counterexample found! $norm")
+    end
+  end
+  outliers
+end
+
+function pellclasses_to_thetafn(pellclasses)
+  θ = zeros(Int, maximum(keys(pellclasses)))
+  for (norm,classes) in pellclasses
+    θ[norm] = length(classes)
+  end
+  θ
+end
+    
+    
+
 
 end#module
