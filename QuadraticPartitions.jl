@@ -13,12 +13,152 @@ function is_wholly_positive(x,y,D)
 end
 export is_wholly_positive
 
-sqrt2_80_dat = convert(Matrix{Int}, readdlm("80.dat"))
+#sqrt2_80_dat = convert(Matrix{Int}, readdlm("80.dat"))
+#sqrt2_plus_50_dat = convert(Matrix{Int}, readdlm("50plus.dat"))
 
+"""
+Contains the power series coefficients which have been pre-calculated
+for the product expansion of (the inverse of) the generating function
+for p(n). Data is categorized by Ok++ vs Ok+ and by which square root
+we choose to adjoin.
+
+DO NOT MODIFY this dictionary. It is just a copy of data which
+has been saved to files. To add more coefficients, update the files
+and call load_data()
+"""
+COEF_DATA = Dict{Tuple{Int,Bool},Matrix{Union{Int, Missing}}}()
+
+reset_coefs() = (global COEF_DATA = Dict{Tuple{Int,Bool},Matrix{Union{Int, Missing}}}())
+
+
+"""
+Loads data from sqrt*.dat files into 
+the dictionary COEF_DATA.
+"""
+function load_data()
+  # Delete current data, because it is always a copy from the files
+
+  reset_coefs()
+  frgx = r"sqrt(.*)\.dat"
+  for file in filter(f -> occursin(frgx, f), readdir())
+    idstr = match(frgx,file).captures[1]
+
+    if length("plusplus") < length(idstr) && idstr[end-7:end] == "plusplus"
+      allpositive = true
+      idstr = idstr[1:end-8]
+    else
+      allpositive = false
+    end
+
+    D = parse(Int, idstr)
+	M = convert(Matrix{Any}, readdlm(file))
+	M[M .== "missing"] .= missing
+	M = convert(Matrix{Union{Int, Missing}},M)
+    COEF_DATA[(D,allpositive)] = M
+  end
+end
+
+"""
+Takes the arrays M and N and returns
+and array which contains the values of both
+M and N at the indices of M and N, and missing
+everywhere else.
+Thus, the arrays M and N have been "merged"
+
+For this to work, the matrices must agree where they 
+have common indices.
+
+E.g.
+M = 
+[1  2
+ 3  4
+ 5  6]
+N = 
+[1  2  3
+ 3  4  5]
+merge_arrays(M,N) = 
+[ 1  2  3       
+ 3  4  5       
+ 5  6   missing]
+"""
+function merge_matrices(M,N)
+  sizes = [size(A,l) for A=(M,N), l=(1,2)]
+
+  for j = 1:minimum(sizes[:,1])
+    for k = 1:minimum(sizes[:,2])
+      if (M[j,k] !== missing && N[j,k] !== missing) && M[j,k] != N[j,k]
+        throw(ArgumentError("""Error: cannot merge two matrices
+							Reason: they have different entries at $j,$k"""))
+      end
+    end
+  end
+
+  m1 = maximum(sizes[:,1])
+  m2 = maximum(sizes[:,2])
+  MN = Union{Missing, eltype(M)}[missing for n=1:m1, m=1:m2]
+  
+  # the following overrwrites some values, but
+  #   this code shouldn't need to be too performant
+  MN[1:size(N,1),1:size(N,2)] = N
+  MN[1:size(M,1),1:size(M,2)] = M
+  MN
+end
+
+"""
+Saves the coefficient matrix into a persistant store, 
+with the following naming convention:
+
+sqrt2.dat - holds data for Q(√2)
+sqrt3.dat - holds data for Q(√3)
+...
+...
+sqrtN.dat - holds data for Q(√N)
+
+For files which denote coefficients for Ok++, 
+the postfix 'plusplus' will be added:
+e.g.
+sqrt2plusplus.dat
+"""
+function incorporate_coefficients(M,D,allpositive)
+  load_data()
+  if !haskey(COEF_DATA, (D, allpositive))
+    new_coefs = M
+  else
+    C = COEF_DATA[(D, allpositive)]
+    new_coefs = merge_matrices(M,C)
+  end
+
+  filename = "sqrt$D"
+  allpositive && (filename *= "plusplus")
+  filename *= ".dat"
+
+  writedlm(filename, new_coefs)
+
+  load_data()
+end
+
+"""
+Returns the euler coeffieicent corresponding
+to a certain wholly positive number.
+"""
 function euler_coef(a,b,D,allpositive)
-  D != 2 && (print("2 only supported!"); return 0) # not implemented
-  !allpositive && (print("Oplus only supported!"); return 0) # not implemented
-  sqrt2_80_dat[a+1,b+1]
+  !is_wholly_positive(a,b,D) && return 0
+
+  key = (D,allpositive)
+
+  # make sure the coeficient data exists
+  if !haskey(COEF_DATA, key)
+    load_data()
+    if !haskey(COEF_DATA, key)
+      print("Cannot find coefficient data for $D, $allpositive")
+      return 0
+    end
+  end
+
+  coefs = COEF_DATA[(D,allpositive)]
+  eul = coefs[a+1,convert(Int,abs(b))+1]
+  eul .=== missing && println("Error: Coefficient missing for $a + $b√$D")
+  eul
 end
 
 """
@@ -77,7 +217,7 @@ function quad_partitions(a,b,D,allpositive=false)
   if allpositive
     bparts_func = l -> partitions_lessterms(b,minimum((l,bound)))
   else
-    bparts_func = l -> generalized_partitions(b,bound,minimum((l,bound)))
+    bparts_func = l -> generalized_partitions(b,minimum((l,bound)),bound)
   end
   ps = Array{Matrix{Int}, 1}()
 
@@ -91,7 +231,7 @@ function quad_partitions(a,b,D,allpositive=false)
   end
 
   for pₐ in partitions(a)
-	  lₐ = length(pₐ)
+    lₐ = length(pₐ)
     for pᵦ in bparts_func(lₐ)
 	  pᵦ == [] && continue
       # skip a few examples that would really waste time
@@ -128,6 +268,9 @@ parts.
 function generalized_partitions(b,maxNumParts,maxpart)
   maxpart == 1 && return Array{Vector{Int}, 1}([[b]])
   #maxpart*maxNumParts < b && return Array{Vector{Int}, 1}([[]])
+
+  # maybe this belongs here for type safety?
+  b = convert(Int, abs(b))
 
   ps = Array{Vector{Int}, 1}()
   N = maximum((maxpart*maxNumParts,b))
@@ -168,6 +311,7 @@ Give the biggest value of a and b where the
 brute force algorithm is performant, tested manually.
 """
 function p_num_brute_force_bound(D,allpositive=false)
+  return 3
   (D == 2 && allpositive) && return 10
   (D == 2 && !allpositive) && return 7
   (D == 3 && allpositive) && return 9
@@ -184,29 +328,52 @@ end
 #if allpositive is true, calculates p₊(n)
 #"""
 @memoize function partition_number(a,b,D,allpositive=false)
-  !allpositive && return 0 # not implemented for Oplus yet
+  #println("Starting $a + $b√2")
+  b < 0 && return partition_number(a,-b,D,allpositive)
 
-  # b is necessarily less than a
-  if a <= p_num_brute_force_bound(D,allpositive) 
-    #print("$a found: brute\n")
-	  return partition_number_brute(a,b,D,allpositive)
+  if a == 0 && b == 0
+    return 1
   end
 
-  #p = partition_number(a-1,b,D,allpositive)
-  #print("$a-1:$b, $p\n")
+  # So it turns out that the brute force is still much slower
+  # than this algorithm even at very small values... 
+  # honestly not that surprising, but for that reaason
+  # the fallback is not necessary:
+  #
+  # b is necessarily less than a
+  #if a <= p_num_brute_force_bound(D,allpositive) 
+  #  #print("$a found: brute\n")
+  #  return partition_number_brute(a,b,D,allpositive)
+  #end
+
   p = 0
   for i = 0:a-1
-	  for j = 0:b
-		  eul = euler_coef(a-i,b-j,D,allpositive)
-      eul == 0 && continue
+    if allpositive
+      start = 0
+      last = b
+    else
+      bound = ceil(Int, i*√D)
+      start = -bound#- ceil(Int, i*√D)
+      last = +bound
+    end
+    #println("START: $start for $i")
+
+    for j = start:last
       #println("$i,$j")
+      eul = euler_coef(a-i,b-j,D,allpositive)
+      #println("  ...found $eul")
+      eul == 0 && continue
+      #println("nonzero coef found!")
+      #pn = partition_number(i,j,D,allpositive)
       p -= eul * partition_number(i,j,D,allpositive)
       #print("running total $a + $b√2: $p\n")
+      #println("term added to $a + $b√2 from e_$(a-i),$(b-j): - $eul * $pn")
     end
   end
+  #println("done computing for $a + $b√2: got $p")
   p
 end
-export parition_number
+export partition_number
 
 """
 Generate a 2-D grid of values of p(n) of size N
@@ -229,9 +396,10 @@ by using the recursive Euler algorithm.
 If allpositive is true, generate p₊(n) instead
 """
 function partitions_grid(N,D,allpositive=false)
-  A = zeros(Int,N+1,N+1)
+  maxB = floor(Int, N / √D)
+  A = zeros(Int,N+1,maxB+1)
   for i = 0:N
-    for j = 0:N
+    for j = 0:maxB
       if is_wholly_positive(i,j,D)
         A[i+1,j+1] = partition_number(i,j,D,allpositive)
       end

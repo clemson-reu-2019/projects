@@ -2,14 +2,17 @@ module Experiments
 
 include("./PartitionsGen.jl")
 include("./QuadraticPartitions.jl")
+#include("./EulerCoefficients.jl")
 
 using .PartitionsGen
 using .QuadraticPartitions
+#using .EulerCoefficients
 using SymPy
 using AbstractAlgebra
 using DelimitedFiles
 using Plots
 using PlotUtils
+using LsqFit
 
 function O_plusplus_vis(D)
   # first index is a, second is b
@@ -37,9 +40,9 @@ function abstract_symbolic_gen(k,D)
     expr *= (1 - x^i)
   end 
   for i in 1:k
-	for nᵢ = convert(Int,ceil(i*√D)):k
-		expr *= (1 - (x^(nᵢ)) * y^i )
-	end
+    for nᵢ = convert(Int,ceil(i*√D)):k
+		  expr *= (1 - (x^(nᵢ)) * y^i )
+    end
   end
   expr
 end
@@ -52,9 +55,9 @@ function symbolic_gen_sqareroot(k,j,D)
   x = Sym("x")
   expr = Sym(1)
   for i in 1:k
-	for nᵢ = convert(Int,ceil(i*√D)):j
+    for nᵢ = convert(Int,ceil(i*√D)):j
       expr *= (1 - x^(nᵢ + Sym(i)*√Sym(2)))
-	end
+    end
   end
   expr
 end
@@ -122,8 +125,13 @@ function process_macaulay2_polynomial(filename)
   open(filename * "jl", "w") do f
 	write(f, noclsdbrak)
   end
+  evalfile(filename * "jl")
 end
 
+"""
+Process the data from macaulay2 into an array which can be
+used to compute partition numbers
+"""
 function process_macaulay2_data(tuples)
   sparse = zeros(Int, length(tuples), 3)
   for i = 1:length(tuples)
@@ -135,15 +143,22 @@ function process_macaulay2_data(tuples)
   recurGrid = zeros(Int, maxA+1, maxB+1)
   for i = 1:length(tuples)
     ((a,b),c) = tuples[i]
-    recurGrid[a+1,b+1] = c
+	0 <= b && (recurGrid[a+1,b+1] = c)
   end
   recurGrid
 end
 
+function process_new_coefficients(filename,D,allpositive)
+  tuples = process_macaulay2_polynomial(filename)
+  coefs = process_macaulay2_data(tuples)
+  QuadraticPartitions.incorporate_coefficients(coefs,D,allpositive)
+end
+
 function generate_norm_array(N,D)
-  NORMS = zeros(Int, N+1,N+1)
+  M = ceil(Int, N/√D)
+  NORMS = zeros(Int, N+1,M+1)
   for a = 0:N
-    for b = 0:N
+    for b = 0:M
       if Experiments.QuadraticPartitions.is_wholly_positive(a,b,D)
         NORMS[a+1,b+1] = a^2 - D*b^2
       end
@@ -157,6 +172,54 @@ function nonzerocoefs(M,level=-10000)
   A[A .== 0] .= level
   heatmap(A, yflip=true, c=cgrad([:red,:blue],[0.1,1]))
   gui()
+end
+
+function plotrow(M,row)
+  G = deepcopy(M[row,:])
+  plot(G)
+  gui()
+end
+
+function logwithzeros(M,level=0.1)
+  N = deepcopy(M)
+  N[N .== 0] .= level
+  log.(N)
+end
+
+getpointsequal(M,n) = foldl((A,x) -> [A; x[1] x[2]], findall(M .== n), init=zeros(Int,0,2))
+
+function timesunit(a,b,n,U =3 + 2*√Sym(2))
+  (a + b*√Sym(2)) * (U^n)
+end
+
+quadratic_mult((a,b),(c,d),D) = (a*c + D*b*d, b*c + a*d)
+
+function modelexpsin(ydata,c₀)
+  @. model(x,c) = c[1]*exp(c[2]*x)*sin(c[3]*√(x+ c[4]))
+  curve_fit(model, 1:length(ydata),ydata,c₀)
+end
+
+function linreg(x,y)
+  @. model(x,c) = c[1]*x + c[2]
+  curve_fit(model,x,y,[1.0,0.0])
+end
+#  -0.9734146840101862 
+#   0.18881479886532654
+#   9.13793675064356   
+# 104.04780167727091
+
+function modelexpsqrt(ydata,c₀)
+  @. model(x,c) = c[1]*exp(c[2]*√x)
+  curve_fit(model,1:length(ydata),ydata,c₀)
+end
+
+function modelsqrt(ydata,c₀)
+  @. model(x,c) = c[1]*√x + c[2]
+  curve_fit(model,1:length(ydata),ydata,c₀)
+end
+
+function highestBFor(a,D)
+  floor(Int, a / √D)
 end
 
 end#module
