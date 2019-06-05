@@ -30,21 +30,20 @@ f := 1;
 
 for i from 1 to a do (
   f = f * (1 - x^i);
-  f = part(0,a,{1,0},f)
+  f = part(0,a-1,{1,0},f)
 );
 
-bnd = b + ceiling(a * sqrt(d));
-
-for i from 1 to bnd do (
+for i from 1 to b do (
   for j from ceiling(i * sqrt(d)) to a do (
     f = f * (1 - (x^j)*(y^i))*(1 - (x^j)*(y^-i));
-    f = part(0,a,{1,0},f);
-    f = part(-(bnd),bnd,{0,1},f); 
+    f = part(0,a-1,{1,0},f);
+    bnd = b + ceiling(a * sqrt(d));
+    f = part(-(bnd-1),bnd-1,{0,1},f); 
 ));
 
-f = part(-(b),b,{0,1},f);
+f = part(-(b-1),b-1,{0,1},f);
 
-listForm(f)
+f
 )
 
 -- This calculates the number of partitions with less than a certain number of terms --
@@ -118,5 +117,23 @@ ExpandRealMetric = (a,b,maxA,maxB,d) -> (
 )
 
 
+--- START NEW TRIAL
 
+ExpandRealMetric = (a,b,maxA,maxB,d) -> (
+  R := QQ[x,y, Inverses=>true,MonomialOrder=>Lex];
+	use R;
+  f = 1;
+  for i from 1 to a do (
+    f = f * expandgeomseries(1,x^i,max(maxA,maxB));
+  );
+
+  for i from 1 to b do (
+    for j from 1 to a do (
+	if j-(i*sqrt(d)) > 0
+	and j+(i*sqrt(d)) < (a-1) + (b*sqrt(d)) then
+      f = f * expandgeomseries(1,(x^j)*(y^i),max(maxA,maxB));
+    );
+  );
+  f
+)
 

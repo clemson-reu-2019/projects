@@ -214,10 +214,11 @@ find partitions in O₊
 """
 function quad_partitions(a,b,D,allpositive=false)
   bound = a - b*floor(Int,√D)
+  nPartsBound = floor(Int,√(a^2 - D*b^2))
   if allpositive
-    bparts_func = l -> partitions_lessterms(b,minimum((l,bound)))
+    bparts_func = l -> partitions_lessterms(b,minimum((l,bound,nPartsBound)))
   else
-    bparts_func = l -> generalized_partitions(b,minimum((l,bound)),bound)
+    bparts_func = l -> generalized_partitions(b,minimum((l,bound,nPartsBound)),bound)
   end
   ps = Array{Matrix{Int}, 1}()
 
@@ -230,7 +231,7 @@ function quad_partitions(a,b,D,allpositive=false)
     end
   end
 
-  for pₐ in partitions(a)
+  for pₐ in partitions_lessterms(a, nPartsBound)
     lₐ = length(pₐ)
     for pᵦ in bparts_func(lₐ)
 	  pᵦ == [] && continue

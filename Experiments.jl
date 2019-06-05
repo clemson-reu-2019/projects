@@ -2,10 +2,12 @@ module Experiments
 
 include("./PartitionsGen.jl")
 include("./QuadraticPartitions.jl")
+include("./PellClasses.jl")
 #include("./EulerCoefficients.jl")
 
 using .PartitionsGen
 using .QuadraticPartitions
+using .PellClasses
 #using .EulerCoefficients
 using SymPy
 using AbstractAlgebra
@@ -154,18 +156,6 @@ function process_new_coefficients(filename,D,allpositive)
   QuadraticPartitions.incorporate_coefficients(coefs,D,allpositive)
 end
 
-function generate_norm_array(N,D)
-  M = ceil(Int, N/√D)
-  NORMS = zeros(Int, N+1,M+1)
-  for a = 0:N
-    for b = 0:M
-      if Experiments.QuadraticPartitions.is_wholly_positive(a,b,D)
-        NORMS[a+1,b+1] = a^2 - D*b^2
-      end
-    end
-  end
-  NORMS
-end
 
 function nonzerocoefs(M,level=-10000)
   A = deepcopy(M)
@@ -194,6 +184,14 @@ end
 
 quadratic_mult((a,b),(c,d),D) = (a*c + D*b*d, b*c + a*d)
 
+function quadratic_power((a,b),N,D)
+  prod = (1,0)
+  for i = 1:N
+    prod = quadratic_mult(prod,(a,b),D)
+  end
+  prod
+end
+
 function modelexpsin(ydata,c₀)
   @. model(x,c) = c[1]*exp(c[2]*x)*sin(c[3]*√(x+ c[4]))
   curve_fit(model, 1:length(ydata),ydata,c₀)
@@ -221,5 +219,27 @@ end
 function highestBFor(a,D)
   floor(Int, a / √D)
 end
+
+
+function comparepellclasses(N,D=2,unit=(3,2),allclasses=nothing)
+  allclasses == nothing && (allclasses = Experiments.findpellclasses(N))
+  println("Evaluating all pell classes for counterexample")
+  outliers = filter(pair -> 1 < length(pair[2]),allclasses)
+  for (norm,classes) in outliers
+    # minimum a
+    part_nums = zeros(Int,length(classes))
+    for i = 1:length(classes)
+      minind = argmin(map(t -> t[1],classes[i]))
+      part_nums[i] = partition_number(classes[i][minind]...,D)
+    end
+    #println("$part_nums")
+    if !allunique(part_nums)
+      println("Counterexample found! $norm")
+    end
+  end
+  outliers
+end
+
+    
 
 end#module

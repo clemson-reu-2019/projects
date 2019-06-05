@@ -73,6 +73,8 @@ Generate all partitions of n which have m or less terms
 partitions_lessterms(n,m) = partitions_of(n,p -> length(p) <= m)
 export partitions_lessterms
 
+# TODO???: write an efficient method for this or the previous method
+#          and memoize
 """
 Generate all partitions of n which have m or less terms and which
 have each part less than or equal to l
