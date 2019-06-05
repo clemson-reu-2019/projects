@@ -15,6 +15,7 @@ using DelimitedFiles
 using Plots
 using PlotUtils
 using LsqFit
+using Primes
 
 function O_plusplus_vis(D)
   # first index is a, second is b
@@ -23,7 +24,7 @@ function O_plusplus_vis(D)
     A[:,i] = length.(quad_partitions.(1:12,i,D,true))
   end
   A'
-  # heatmap(A') 
+  # heatmap(A')
   #   with Plots.jl
 end
 
@@ -38,9 +39,9 @@ end
 function abstract_symbolic_gen(k,D)
   R, (x, y) = PolynomialRing(ZZ, ["x", "y"])
   expr = 1
-  for i = 1:k 
+  for i = 1:k
     expr *= (1 - x^i)
-  end 
+  end
   for i in 1:k
     for nᵢ = convert(Int,ceil(i*√D)):k
 		  expr *= (1 - (x^(nᵢ)) * y^i )
@@ -90,7 +91,7 @@ function get_distinguished_element(a,b,D=3)
 	i += 1
 	xᵢ₊₁ = simplify(xᵢ * expand(unit^i))
 	(a, b) = parts(xᵢ₊₁)
-	if is_wholly_positive(a,b,D) && 
+	if is_wholly_positive(a,b,D) &&
 		abs(a^2 + b^2) < abs(a_best^2 + b_best^2) # euclidean norm
       (a_best, b_best) = (a,b)
 	  xᵢ = xᵢ₊₁
@@ -107,7 +108,7 @@ that can be copied and pasted into julia
 """
 function process_macaulay2_polynomial(filename)
   replace_at(s,i,new) = s[1:i-1] * new * s[i+1:end]
-  
+
   m2out = read(filename, String)
   # remove all ---- lines
   lines = split(m2out, "\n")
@@ -201,9 +202,9 @@ function linreg(x,y)
   @. model(x,c) = c[1]*x + c[2]
   curve_fit(model,x,y,[1.0,0.0])
 end
-#  -0.9734146840101862 
+#  -0.9734146840101862
 #   0.18881479886532654
-#   9.13793675064356   
+#   9.13793675064356
 # 104.04780167727091
 
 function modelexpsqrt(ydata,c₀)
@@ -240,6 +241,14 @@ function comparepellclasses(N,D=2,unit=(3,2),allclasses=nothing)
   outliers
 end
 
-    
+function primesmod(N,n,X)
+	P=Primes.primes(N)
+	for a in X
+		P=filter!((x)->mod(x,n)==a,P)
+	end
+	return P
+end
+
+
 
 end#module
