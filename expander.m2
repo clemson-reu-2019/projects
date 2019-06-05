@@ -122,19 +122,19 @@ ExpandRealMetric = (a,b,maxA,maxB,d) -> (
 
 ExpandRealMetric = (a,b,maxA,maxB,d) -> (
   R := QQ[x,y, Inverses=>true,MonomialOrder=>Lex];
-	use R;
+    use R;
   f = 1;
   for i from 1 to a do (
     f = f * expandgeomseries(1,x^i,max(maxA,maxB));
-  );
+  );  
 
   for i from 1 to b do (
     for j from 1 to a do (
-	if j-(i*sqrt(d)) > 0
-	and j+(i*sqrt(d)) < (a-1) + (b*sqrt(d)) then
+    if j-(i*sqrt(d)) > 0 
+    and j+(i*sqrt(d)) < (a-1) + (b*sqrt(d)) then
       f = f * expandgeomseries(1,(x^j)*(y^i),max(maxA,maxB));
-    );
-  );
+    );  
+  );  
   f
 )
 
