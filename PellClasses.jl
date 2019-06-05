@@ -50,10 +50,11 @@ function addconjugates(pellclass)
 end
 
 
-function findpellclasses(N,D=2,unit=(3,2),ignoreconj=true)
-  norms = generate_norm_array(N,D)
+function findpellclasses(A,D=2,unit=(3,2),ignoreconj=true)
+  norms = generate_norm_array(A,D)
   classes = Dict{Int,Array{PellClass{Int}}}()
-  boundOnFundSol = floor(Int,N/√(unit[1] + unit[2]*√D))
+  #boundOnFundSol = floor(Int,N/√(unit[1] + unit[2]*√D))
+  boundOnFundSol = floor(Int,A^2/(unit[1] + unit[2]*√D))
 
   pushclass(c,i) = haskey(classes,i) ? push!(classes[i], c) : classes[i] = [c]
 
@@ -62,10 +63,18 @@ function findpellclasses(N,D=2,unit=(3,2),ignoreconj=true)
     matches = map(m -> m .- 1, matches)
 
     while 0 < length(matches)
-      firstclass = pellClassFor(matches[1]...,D,unit,N)
+      firstclass = pellClassFor(matches[1]...,D,unit,A)
       pushclass(firstclass, i)
 
-      accumSet = ignoreconj ? addconjugates(firstclass) : firstclass
+      if !ignoreconj
+        conj = (matches[1][1], -matches[1][2])
+        if !(conj in firstclass)
+          conjclass = pellClassFor(conj...,D,unit,A)
+          pushclass(conjclass, i)
+        end
+      end
+
+      accumSet = addconjugates(firstclass)
       matches = filter(m -> !(m in accumSet), matches)
     end
   end
