@@ -244,11 +244,10 @@ end
 function primesmod(N,n,X)
 	P=Primes.primes(N)
 	for a in X
-		P=filter!((x)->mod(x,n)==a,P)
+		P=filter!((x)->mod(x,n) in X,P)
 	end
 	return P
 end
-
 
 
 end#module
