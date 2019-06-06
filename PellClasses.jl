@@ -4,6 +4,8 @@ include("./PartitionsGen.jl")
 include("./QuadraticPartitions.jl")
 using .QuadraticPartitions
 
+using Primes
+
 const PellClass{T} = Array{Tuple{T,T}}
 
 qmult((a,b),(c,d),D) = (a*c + D*b*d, b*c + a*d)
@@ -91,6 +93,43 @@ end
 
 function pellthetafn(N,D=2,unit=(3,2),ignoreconj=true)
   pellclasses_to_thetafn(findpellclasses(N,D,unit,ignoreconj))
+end
+
+"""
+Decide whether a prime is a solvable prime
+
+Does not consider the case when p is not prime. 
+Be sure that p is a prime!!!
+"""
+function is_solvable(p,D)
+  D == 2 && return (p % 8 == 1 || p % 8 == 7)
+  D == 5 && return (p % 10 == 1 || p % 10 == 9)
+  D == 10 && return (is_solvable(p,2) && is_solvable(p,5))
+  false
+end
+
+function is_symmetric(n,D)
+  D == 2 && return n == 2
+  false
+end
+
+function theta_coef(n,D)
+  !(D == 2 || D == 5) && throw(ArgumentError("not supported"))
+  n == 1 && return 1
+  factzn = factor(Dict,n)
+  SlvP = Dict(1 => 0)
+
+  for (pᵢ,eᵢ) in factzn
+    if is_solvable(pᵢ,D)
+      SlvP[pᵢ] = eᵢ
+    else
+      if !is_symmetric(pᵢ,D) && (eᵢ % 2 == 1)
+        return 0
+      end
+    end
+  end
+
+  prod(collect(values(SlvP)) .+ 1)
 end
 
 end#module
