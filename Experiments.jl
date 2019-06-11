@@ -45,7 +45,7 @@ function abstract_symbolic_gen(k,D)
   end
   for i in 1:k
     for nᵢ = convert(Int,ceil(i*√D)):k
-		  expr *= (1 - (x^(nᵢ)) * y^i )
+      expr *= (1 - (x^(nᵢ)) * y^i )
     end
   end
   expr
@@ -70,7 +70,7 @@ function symbolic_gen_euler(k)
   x = Sym("x")
   expr = Sym(1)
   for i = 1:k
-	expr *= (1 - x^i)
+  expr *= (1 - x^i)
   end
   expr
 end
@@ -89,16 +89,16 @@ function get_distinguished_element(a,b,D=3)
   i = 0
   xᵢ = x₀
   while true
-	i += 1
-	xᵢ₊₁ = simplify(xᵢ * expand(unit^i))
-	(a, b) = parts(xᵢ₊₁)
-	if is_wholly_positive(a,b,D) &&
-		abs(a^2 + b^2) < abs(a_best^2 + b_best^2) # euclidean norm
+  i += 1
+  xᵢ₊₁ = simplify(xᵢ * expand(unit^i))
+  (a, b) = parts(xᵢ₊₁)
+  if is_wholly_positive(a,b,D) &&
+    abs(a^2 + b^2) < abs(a_best^2 + b_best^2) # euclidean norm
       (a_best, b_best) = (a,b)
-	  xᵢ = xᵢ₊₁
-  	else
-	  break
-  	end
+    xᵢ = xᵢ₊₁
+    else
+    break
+    end
   end
   (a_best,b_best)
 end
@@ -127,7 +127,7 @@ function process_macaulay2_polynomial(filename)
   noopenbrak = replace(clsdsquare, "{" => "(")
   noclsdbrak = replace(noopenbrak, "}" => ")")
   open(filename * "jl", "w") do f
-	write(f, noclsdbrak)
+  write(f, noclsdbrak)
   end
   evalfile(filename * "jl")
 end
@@ -147,7 +147,7 @@ function process_macaulay2_data(tuples)
   recurGrid = zeros(Int, maxA+1, maxB+1)
   for i = 1:length(tuples)
     ((a,b),c) = tuples[i]
-	0 <= b && (recurGrid[a+1,b+1] = c)
+  0 <= b && (recurGrid[a+1,b+1] = c)
   end
   recurGrid
 end
@@ -243,12 +243,21 @@ function comparepellclasses(N,D=2,unit=(3,2),allclasses=nothing)
 end
 
 function primesmod(N,n,X)
-	P=Primes.primes(N)
-	for a in X
-		P=filter!((x)->mod(x,n) in X,P)
-	end
-	return P
+  P=Primes.primes(N)
+  for a in X
+    P=filter!((x)->mod(x,n) in X,P)
+  end
+  return P
 end
 
+function partitions_over_parts_distr(N)
+  DIST = zeros(Int,N,N)
+  for n = 1:N
+    for r = 1:N
+      DIST[n,r] = partition_number_lessterms(n,r)
+    end
+  end
+  DIST
+end
 
 end#module

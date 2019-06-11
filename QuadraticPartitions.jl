@@ -7,14 +7,7 @@ using Memoize
 using ..PartitionsGen
 using .EulerCoefficients
 
-"""
-Returns true if x + y√D is wholly positive
-"""
-function is_wholly_positive(x,y,D)
-  0 < x && D*y^2 < x^2
-end
-export is_wholly_positive
-
+# BRUTE FORCE ALGORITHM
 
 """
 Takes a partition p of some integer a, and 
@@ -162,20 +155,35 @@ export generalized_partitions
   length(quad_partitions(a,b,D,allpositive))
 end
 
+#"""
+#Give the biggest value of a and b where the 
+#brute force algorithm is performant, tested manually.
+#"""
+#function p_num_brute_force_bound(D,allpositive=false)
+#  (D == 2 && allpositive) && return 10
+#  (D == 2 && !allpositive) && return 7
+#  (D == 3 && allpositive) && return 9
+#  (D == 3 && !allpositive) && return 7
+#  (D == 5 && allpositive) && return 11
+#  (D == 5 && !allpositive) && return 7
+#  5 # a decent bet that this will be fast
+#end
+
 """
-Give the biggest value of a and b where the 
-brute force algorithm is performant, tested manually.
+Generate a 2-D grid of values of p(n) of size N
+by brute-forcing it.
+
+If allpositive is true, generate p₊(n) instead
 """
-function p_num_brute_force_bound(D,allpositive=false)
-  return 3
-  (D == 2 && allpositive) && return 10
-  (D == 2 && !allpositive) && return 7
-  (D == 3 && allpositive) && return 9
-  (D == 3 && !allpositive) && return 7
-  (D == 5 && allpositive) && return 11
-  (D == 5 && !allpositive) && return 7
-  5 # a decent bet that this will be fast
+function partitions_grid_brute(N,D,allpositive=false)
+  A = zeros(Int,N+1,N+1)
+  for i = 0:N
+    A[:,i+1] = length.(quad_partitions.(0:N,i,D,allpositive))
+  end
+  A'
 end
+
+# RECURSIVE ALGORITHM USING EULER PRODUCT EXPANSION 
 
 #"""
 #Calculate the partition number p(n) of n = a + b√D
@@ -231,19 +239,6 @@ end
 end
 export partition_number
 
-"""
-Generate a 2-D grid of values of p(n) of size N
-by brute-forcing it.
-
-If allpositive is true, generate p₊(n) instead
-"""
-function partitions_grid_brute(N,D,allpositive=false)
-  A = zeros(Int,N+1,N+1)
-  for i = 0:N
-    A[:,i+1] = length.(quad_partitions.(0:N,i,D,allpositive))
-  end
-  A'
-end
 
 """
 Generate a 2-D grid of values of p(n) of size N
@@ -264,5 +259,88 @@ function partitions_grid(N,D,allpositive=false)
   A'
 end
 export partitions_grid
+
+# RECURSIVE ALGORITHM USING FINITE PRODUCT EXPANSION
+
+#"""
+#Calculate the integer partition number pᵣ(n)
+#which gives the number of partitions of n
+#with less than or equal to r parts
+#"""
+@memoize function partition_number_lessterms(n,r)
+  r == 1 && return 1
+  n == 0 && return 1
+  sum(partition_number_lessterms.(n:-r:0,r-1))
+end
+export partition_number_lessterms
+
+"""
+Returns an array of tuples of all of the 
+wholly positive integers whith a < maxA
+"""
+function all_whpstvi(maxA,D)
+  WP = [(1,0)]
+  for a = 2:maxA
+    for b = 0:floor(Int, a / √D)
+      push!(WP,(a,b))
+    end
+  end
+  WP
+end
+
+"""
+Returns true of (a,b) does not exceed (c,d) in the field
+Q(√D)
+"""
+function ds_not_exceed((a,b),(c,d),D)
+  t = a + b*√D
+  t̄ = a - b*√D
+  r = c + d*√D
+  t <= r && t̄ <= r
+end
+
+# the following three algorithms are rather brute-force
+# TODO: figure out a smarter way?
+
+"""
+Returns an array of all wholly positive numbers which do not exceed
+(c,d)
+"""
+function all_ds_not_exceed((c,d),D)
+  filter(((x,y),) -> ds_not_exceed((x,y),(c,d),D), all_whpstvi(c,D))
+end
+
+"""
+Given a wholly positive integer, gives the next wholly positive integer
+with respect to the enumeration that uses "does not exceed"
+"""
+function next_whpstvi((a,b),D)
+  rord((x,y)) = x + y*√D
+  r = rord((a,b))
+  nextreal = ceil(Int, r)
+
+  eligible = (s,) -> rord(s) < r && r < rord(s)
+
+  ELG = filter(eligible, all_whpstvi(a,D))
+  push!(ELG,(nextreal,0))
+
+  minind = argmin(rord.(ELG))
+  ELG[minind]
+end
+
+"""
+gives the greatest wholly positive integer that is less than (a,b)
+and does not exceed (a,b)
+"""
+function last_whpstvi((a,b),D)
+  rord(x,y) = x + y*√D
+  r = rord(a,b)
+  
+  eligible = ((s₁,s₂),) -> rord(s₁,s₂) < r && ds_not_exceed((s₁,s₂),r)
+  ELG = filter(eligible, all_whpstvi(a,D))
+  maxind = argmax(rord.(ELG))
+  ELG[maxind]
+end
+
 
 end#module
