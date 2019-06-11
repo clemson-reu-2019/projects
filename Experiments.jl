@@ -1,11 +1,12 @@
 module Experiments
 
 include("./PartitionsGen.jl")
+include("./EulerCoefficients.jl")
 include("./QuadraticPartitions.jl")
 include("./PellClasses.jl")
-#include("./EulerCoefficients.jl")
 
 using .PartitionsGen
+using .EulerCoefficients
 using .QuadraticPartitions
 using .PellClasses
 #using .EulerCoefficients
@@ -223,7 +224,7 @@ end
 
 
 function comparepellclasses(N,D=2,unit=(3,2),allclasses=nothing)
-  allclasses == nothing && (allclasses = Experiments.findpellclasses(N))
+  allclasses == nothing && (allclasses = findpellclasses(N,D,unit))
   println("Evaluating all pell classes for counterexample")
   outliers = filter(pair -> 1 < length(pair[2]),allclasses)
   for (norm,classes) in outliers
