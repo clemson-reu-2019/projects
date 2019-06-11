@@ -1,8 +1,7 @@
 module PellClasses
 
-include("./PartitionsGen.jl")
-include("./QuadraticPartitions.jl")
-using .QuadraticPartitions
+include("./EulerCoefficients.jl")
+using .EulerCoefficients
 
 using Primes
 
