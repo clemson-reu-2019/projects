@@ -267,12 +267,12 @@ export partitions_grid
 #which gives the number of partitions of n
 #with less than or equal to r parts
 #"""
-@memoize function partition_number_lessterms(n,r)
+@memoize function partition_number_leq(n,r)
   r == 1 && return 1
   n == 0 && return 1
-  sum(partition_number_lessterms.(n:-r:0,r-1))
+  sum(partition_number_leq.(n:-r:0,r-1))
 end
-export partition_number_lessterms
+export partition_number_leq
 
 """
 Returns an array of tuples of all of the 
@@ -298,6 +298,7 @@ function ds_not_exceed((a,b),(c,d),D)
   r = c + d*√D
   t <= r && t̄ <= r
 end
+export ds_not_exceed
 
 # the following three algorithms are rather brute-force
 # TODO: figure out a smarter way?
@@ -309,6 +310,7 @@ Returns an array of all wholly positive numbers which do not exceed
 function all_ds_not_exceed((c,d),D)
   filter(((x,y),) -> ds_not_exceed((x,y),(c,d),D), all_whpstvi(c,D))
 end
+export all_ds_not_exceed
 
 """
 Given a wholly positive integer, gives the next wholly positive integer
@@ -316,10 +318,11 @@ with respect to the enumeration that uses "does not exceed"
 """
 function next_whpstvi((a,b),D)
   rord((x,y)) = x + y*√D
+  bar((x,y)) = (x,-y)
   r = rord((a,b))
-  nextreal = ceil(Int, r)
+  nextreal = b == 0 ? a+1 : ceil(Int, r)
 
-  eligible = (s,) -> rord(s) < r && r < rord(s)
+  eligible = (s,) -> rord(bar(s)) < r && r < rord(s)
 
   ELG = filter(eligible, all_whpstvi(a,D))
   push!(ELG,(nextreal,0))
@@ -327,20 +330,73 @@ function next_whpstvi((a,b),D)
   minind = argmin(rord.(ELG))
   ELG[minind]
 end
+export next_whpstvi
 
 """
 gives the greatest wholly positive integer that is less than (a,b)
 and does not exceed (a,b)
 """
-function last_whpstvi((a,b),D)
-  rord(x,y) = x + y*√D
-  r = rord(a,b)
+function largest_whpstvi_lt((a,b),D)
+  (a,b)==(1,0) && throw(ArgumentException("No wholly positive numbers less than 1"))
+
+  rord((x,y)) = x + y*√D
+  r = rord((a,b))
   
-  eligible = ((s₁,s₂),) -> rord(s₁,s₂) < r && ds_not_exceed((s₁,s₂),r)
-  ELG = filter(eligible, all_whpstvi(a,D))
+  eligible = (s,) -> rord(s) < r && ds_not_exceed(s,(a,b),D)
+  ELG = filter(eligible, all_whpstvi(2*a,D))
   maxind = argmax(rord.(ELG))
   ELG[maxind]
 end
 
+spac = 0
+"""
+Recursively compute the partition number using the recursive 
+formula for the number of partitions with parts which are
+less than (c,d)
+"""
+function partition_number_leq(n,r,D)
+  println(" "^(spac), "starting p$n, r=$r")
+  global spac += 1
+  bar((x,y)) = (x,-y)
+  add((a,b),(c,d)) = (a+c,b+d)
+
+  # the order of these base cases matters
+  n == (0,0) && (spac -= 1; println(" "^(spac), "p(0), got 1"); return 1)
+  !is_wholly_positive(n...,D) && (spac -= 1; return 0)
+  if r == (1,0)
+    (_,b) = n
+    if b == 0
+      #return 1
+      spac -= 1; println(" "^(spac), "p$n, 1 part, got 1"); return 1
+    else
+      #return 0
+      spac -= 1; return 0
+    end
+  end
+  #r == (1,0) && 
+
+  s = largest_whpstvi_lt(r,D)
+
+  sum = 0
+
+  #dont have a foemula for the bounds of this for loop
+  k = 0
+  while true
+    q = 0
+    while true
+      newN = add(n, -1 .* (add(k .* r, q .* bar(r))))
+      term = partition_number_leq(newN,s,D)
+      sum += term
+      term == 0 && break
+      q += 1
+    end
+    q == 0 && break
+    k += 1
+  end
+
+  global spac -= 1
+  println(" "^(spac), "p$n, r=$r got $sum")
+  sum
+end
 
 end#module

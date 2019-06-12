@@ -254,10 +254,23 @@ function partitions_over_parts_distr(N)
   DIST = zeros(Int,N,N)
   for n = 1:N
     for r = 1:N
-      DIST[n,r] = partition_number_lessterms(n,r)
+      DIST[n,r] = partition_number_leq(n,r)
     end
   end
   DIST
+end
+
+function all_not_exceed_bool(a,b,D,N=0)
+  N == 0 && (N = a)
+  A = zeros(Int, N+1, highestBFor(N,D)+1)
+  for (x,y) in QuadraticPartitions.all_whpstvi(N,D)
+    if ds_not_exceed((x,y),(a,b),D)
+      A[x+1,y+1] = 2
+    else
+      A[x+1,y+1] = 1
+    end
+  end
+  A'
 end
 
 end#module
