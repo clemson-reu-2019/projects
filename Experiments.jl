@@ -273,4 +273,43 @@ function all_not_exceed_bool(a,b,D,N=0)
   A'
 end
 
+function find_congruiences(p,mults,mods,offsets,N)
+  for i in 1:length(mults)
+    m = mults[i]
+    md = mods[i]
+    for offset in offsets
+      res = p.(m .* collect(0:N) .+ offset) .% md
+      if length(unique(res)) == 1
+        ans = res[1]
+        println("Found congruence: p($m*k + $offset) = $ans (mod $md)")
+      end
+    end
+  end
+end
+
+function sums_of_norms(N,D,num=2)
+  norms = generate_norm_array(N,D)
+  maxnorm = maximum(norms)
+  sums = zeros(Int, fill(maxnorm,num)...)
+  sumset = Set{Int}()
+
+  for n1 in norms
+    n1 == 0 && continue
+    for n2 in norms
+      n2 == 0 && continue
+      if num == 3
+        for n3 in norms
+          n3 == 0 && continue
+          sums[n1,n2,n3] = n1 + n2 + n3
+          push!(sumset,n1 + n2 + n3)
+        end
+      else
+        sums[n1,n2] = n1 + n2
+        push!(sumset,n1 + n2)
+      end
+    end
+  end
+  (sums,sort(collect(sumset)))
+end
+
 end#module

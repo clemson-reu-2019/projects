@@ -26,6 +26,7 @@ function generate_norm_array(N,D)
   end
   NORMS
 end
+export generate_norm_array
 
 # goes one member beyond limitA right now
 function pellClassFor(a,b,D=2,unit=(3,2),limitA=100)

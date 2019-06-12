@@ -82,7 +82,7 @@ function quad_partitions(a,b,D,allpositive=false)
   for pₐ in partitions_lessterms(a, nPartsBound)
     lₐ = length(pₐ)
     for pᵦ in bparts_func(lₐ)
-	  pᵦ == [] && continue
+    pᵦ == [] && continue
       # skip a few examples that would really waste time
       if !is_wholly_positive(maximum(pₐ),minimum(pᵦ),D)
         continue
@@ -129,7 +129,7 @@ function generalized_partitions(b,maxNumParts,maxpart)
   end
   
   if b != 0 
-	0 < b && append!(ps,partitions_lessterms(b,maxNumParts))
+    0 < b && append!(ps,partitions_lessterms(b,maxNumParts))
     b < 0 && append!(ps,-1 .* reverse.(plists[-b]))
   end
   for i = abs(b)+1:maxpart*maxNumParts
@@ -191,9 +191,9 @@ end
 #
 #if allpositive is true, calculates p₊(n)
 #"""
-@memoize function partition_number(a,b,D,allpositive=false)
+@memoize function partition_number_euler(a,b,D,allpositive=false)
   #println("Starting $a + $b√2")
-  b < 0 && return partition_number(a,-b,D,allpositive)
+  b < 0 && return partition_number_euler(a,-b,D,allpositive)
 
   if a == 0 && b == 0
     return 1
@@ -228,8 +228,8 @@ end
       #println("  ...found $eul")
       eul == 0 && continue
       #println("nonzero coef found!")
-      #pn = partition_number(i,j,D,allpositive)
-      p -= eul * partition_number(i,j,D,allpositive)
+      #pn = partition_number_euler(i,j,D,allpositive)
+      p -= eul * partition_number_euler(i,j,D,allpositive)
       #print("running total $a + $b√2: $p\n")
       #println("term added to $a + $b√2 from e_$(a-i),$(b-j): - $eul * $pn")
     end
@@ -237,7 +237,7 @@ end
   #println("done computing for $a + $b√2: got $p")
   p
 end
-export partition_number
+export partition_number_euler
 
 
 """
@@ -246,13 +246,14 @@ by using the recursive Euler algorithm.
 
 If allpositive is true, generate p₊(n) instead
 """
-function partitions_grid(N,D,allpositive=false)
+function partitions_grid(N,D,allpositive=false,alg=nothing)
+  alg == nothing && (alg = partition_number)
   maxB = floor(Int, N / √D)
   A = zeros(Int,N+1,maxB+1)
   for i = 0:N
     for j = 0:maxB
       if is_wholly_positive(i,j,D)
-        A[i+1,j+1] = partition_number(i,j,D,allpositive)
+        A[i+1,j+1] = alg(i,j,D,allpositive)
       end
     end
   end
@@ -348,55 +349,81 @@ function largest_whpstvi_lt((a,b),D)
   ELG[maxind]
 end
 
-spac = 0
 """
-Recursively compute the partition number using the recursive 
-formula for the number of partitions with parts which are
-less than (c,d)
+Returns an iterator of all the wholly positive numbers in the
+lattice { n - (k*r + q*r̄) }
 """
-function partition_number_leq(n,r,D)
-  println(" "^(spac), "starting p$n, r=$r")
-  global spac += 1
-  bar((x,y)) = (x,-y)
+function whpstv_lattice_lt(n,r,D)
+  bar((a,b)) = (a,-b)
   add((a,b),(c,d)) = (a+c,b+d)
 
-  # the order of these base cases matters
-  n == (0,0) && (spac -= 1; println(" "^(spac), "p(0), got 1"); return 1)
-  !is_wholly_positive(n...,D) && (spac -= 1; return 0)
-  if r == (1,0)
-    (_,b) = n
-    if b == 0
-      #return 1
-      spac -= 1; println(" "^(spac), "p$n, 1 part, got 1"); return 1
-    else
-      #return 0
-      spac -= 1; return 0
-    end
-  end
-  #r == (1,0) && 
+  pts = Set([n])
 
-  s = largest_whpstvi_lt(r,D)
-
-  sum = 0
-
-  #dont have a foemula for the bounds of this for loop
+  #dont have a formula for the bounds of this for loop
   k = 0
   while true
     q = 0
     while true
       newN = add(n, -1 .* (add(k .* r, q .* bar(r))))
-      term = partition_number_leq(newN,s,D)
-      sum += term
-      term == 0 && break
+      if newN == (0,0) || is_wholly_positive(newN...,D)
+        push!(pts, newN)
+      else
+        break
+      end
       q += 1
     end
     q == 0 && break
     k += 1
   end
 
-  global spac -= 1
-  println(" "^(spac), "p$n, r=$r got $sum")
-  sum
+  pts
 end
+
+#"""
+#Recursively compute the partition number using the recursive 
+#formula for the number of partitions with parts which are
+#less than (c,d)
+#"""
+@memoize function partition_number_leq(n,r,D)
+  #println(" "^(spac), "starting p$n, r=$r")
+  #global spac += 1
+
+  # the order of these base cases matters
+  n == (0,0) && return 1#(spac -= 1; println(" "^(spac), "p(0), got 1"); return 1)
+  !is_wholly_positive(n...,D) && return 0#(spac -= 1; return 0)
+  if r == (1,0)
+    (_,b) = n
+    if b == 0
+      return 1
+      #spac -= 1; println(" "^(spac), "p$n, 1 part, got 1"); return 1
+    else
+      return 0
+      #spac -= 1; return 0
+    end
+  end
+
+  total = 0
+
+  s = largest_whpstvi_lt(r,D)
+  for nminusl in whpstv_lattice_lt(n,r,D)
+    total += partition_number_leq(nminusl,s,D)
+  end
+
+  #global spac -= 1
+  #println(" "^(spac), "p$n, r=$r got $sum")
+  total
+end
+
+"""
+Gives the partition number for a + b√D using the recursive recurrence formula
+"""
+function partition_number_recurs(a,b,D,allpositive=false)
+  allpositive && throw(ArgumentException("Ok++ not supported by this algorithm"))
+  partition_number_leq((a,b),(a,b),D)
+end
+
+partition_number = partition_number_euler
+export partition_number
+
 
 end#module
