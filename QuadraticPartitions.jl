@@ -1,165 +1,13 @@
 module QuadraticPartitions
 
+include("./EulerCoefficients.jl")
+
 using Combinatorics
 using Memoize
-using DelimitedFiles
 using ..PartitionsGen
+using .EulerCoefficients
 
-"""
-Returns true if x + y√D is wholly positive
-"""
-function is_wholly_positive(x,y,D)
-  0 < x && D*y^2 < x^2
-end
-export is_wholly_positive
-
-#sqrt2_80_dat = convert(Matrix{Int}, readdlm("80.dat"))
-#sqrt2_plus_50_dat = convert(Matrix{Int}, readdlm("50plus.dat"))
-
-"""
-Contains the power series coefficients which have been pre-calculated
-for the product expansion of (the inverse of) the generating function
-for p(n). Data is categorized by Ok++ vs Ok+ and by which square root
-we choose to adjoin.
-
-DO NOT MODIFY this dictionary. It is just a copy of data which
-has been saved to files. To add more coefficients, update the files
-and call load_data()
-"""
-COEF_DATA = Dict{Tuple{Int,Bool},Matrix{Union{Int, Missing}}}()
-
-reset_coefs() = (global COEF_DATA = Dict{Tuple{Int,Bool},Matrix{Union{Int, Missing}}}())
-
-
-"""
-Loads data from sqrt*.dat files into 
-the dictionary COEF_DATA.
-"""
-function load_data()
-  # Delete current data, because it is always a copy from the files
-
-  reset_coefs()
-  frgx = r"sqrt(.*)\.dat"
-  for file in filter(f -> occursin(frgx, f), readdir())
-    idstr = match(frgx,file).captures[1]
-
-    if length("plusplus") < length(idstr) && idstr[end-7:end] == "plusplus"
-      allpositive = true
-      idstr = idstr[1:end-8]
-    else
-      allpositive = false
-    end
-
-    D = parse(Int, idstr)
-	M = convert(Matrix{Any}, readdlm(file))
-	M[M .== "missing"] .= missing
-	M = convert(Matrix{Union{Int, Missing}},M)
-    COEF_DATA[(D,allpositive)] = M
-  end
-end
-
-"""
-Takes the arrays M and N and returns
-and array which contains the values of both
-M and N at the indices of M and N, and missing
-everywhere else.
-Thus, the arrays M and N have been "merged"
-
-For this to work, the matrices must agree where they 
-have common indices.
-
-E.g.
-M = 
-[1  2
- 3  4
- 5  6]
-N = 
-[1  2  3
- 3  4  5]
-merge_arrays(M,N) = 
-[ 1  2  3       
- 3  4  5       
- 5  6   missing]
-"""
-function merge_matrices(M,N)
-  sizes = [size(A,l) for A=(M,N), l=(1,2)]
-
-  for j = 1:minimum(sizes[:,1])
-    for k = 1:minimum(sizes[:,2])
-      if (M[j,k] !== missing && N[j,k] !== missing) && M[j,k] != N[j,k]
-        throw(ArgumentError("""Error: cannot merge two matrices
-							Reason: they have different entries at $j,$k"""))
-      end
-    end
-  end
-
-  m1 = maximum(sizes[:,1])
-  m2 = maximum(sizes[:,2])
-  MN = Union{Missing, eltype(M)}[missing for n=1:m1, m=1:m2]
-  
-  # the following overrwrites some values, but
-  #   this code shouldn't need to be too performant
-  MN[1:size(N,1),1:size(N,2)] = N
-  MN[1:size(M,1),1:size(M,2)] = M
-  MN
-end
-
-"""
-Saves the coefficient matrix into a persistant store, 
-with the following naming convention:
-
-sqrt2.dat - holds data for Q(√2)
-sqrt3.dat - holds data for Q(√3)
-...
-...
-sqrtN.dat - holds data for Q(√N)
-
-For files which denote coefficients for Ok++, 
-the postfix 'plusplus' will be added:
-e.g.
-sqrt2plusplus.dat
-"""
-function incorporate_coefficients(M,D,allpositive)
-  load_data()
-  if !haskey(COEF_DATA, (D, allpositive))
-    new_coefs = M
-  else
-    C = COEF_DATA[(D, allpositive)]
-    new_coefs = merge_matrices(M,C)
-  end
-
-  filename = "sqrt$D"
-  allpositive && (filename *= "plusplus")
-  filename *= ".dat"
-
-  writedlm(filename, new_coefs)
-
-  load_data()
-end
-
-"""
-Returns the euler coeffieicent corresponding
-to a certain wholly positive number.
-"""
-function euler_coef(a,b,D,allpositive)
-  !is_wholly_positive(a,b,D) && return 0
-
-  key = (D,allpositive)
-
-  # make sure the coeficient data exists
-  if !haskey(COEF_DATA, key)
-    load_data()
-    if !haskey(COEF_DATA, key)
-      print("Cannot find coefficient data for $D, $allpositive")
-      return 0
-    end
-  end
-
-  coefs = COEF_DATA[(D,allpositive)]
-  eul = coefs[a+1,convert(Int,abs(b))+1]
-  eul .=== missing && println("Error: Coefficient missing for $a + $b√$D")
-  eul
-end
+# BRUTE FORCE ALGORITHM
 
 """
 Takes a partition p of some integer a, and 
@@ -234,7 +82,7 @@ function quad_partitions(a,b,D,allpositive=false)
   for pₐ in partitions_lessterms(a, nPartsBound)
     lₐ = length(pₐ)
     for pᵦ in bparts_func(lₐ)
-	  pᵦ == [] && continue
+    pᵦ == [] && continue
       # skip a few examples that would really waste time
       if !is_wholly_positive(maximum(pₐ),minimum(pᵦ),D)
         continue
@@ -281,7 +129,7 @@ function generalized_partitions(b,maxNumParts,maxpart)
   end
   
   if b != 0 
-	0 < b && append!(ps,partitions_lessterms(b,maxNumParts))
+    0 < b && append!(ps,partitions_lessterms(b,maxNumParts))
     b < 0 && append!(ps,-1 .* reverse.(plists[-b]))
   end
   for i = abs(b)+1:maxpart*maxNumParts
@@ -307,20 +155,35 @@ export generalized_partitions
   length(quad_partitions(a,b,D,allpositive))
 end
 
+#"""
+#Give the biggest value of a and b where the 
+#brute force algorithm is performant, tested manually.
+#"""
+#function p_num_brute_force_bound(D,allpositive=false)
+#  (D == 2 && allpositive) && return 10
+#  (D == 2 && !allpositive) && return 7
+#  (D == 3 && allpositive) && return 9
+#  (D == 3 && !allpositive) && return 7
+#  (D == 5 && allpositive) && return 11
+#  (D == 5 && !allpositive) && return 7
+#  5 # a decent bet that this will be fast
+#end
+
 """
-Give the biggest value of a and b where the 
-brute force algorithm is performant, tested manually.
+Generate a 2-D grid of values of p(n) of size N
+by brute-forcing it.
+
+If allpositive is true, generate p₊(n) instead
 """
-function p_num_brute_force_bound(D,allpositive=false)
-  return 3
-  (D == 2 && allpositive) && return 10
-  (D == 2 && !allpositive) && return 7
-  (D == 3 && allpositive) && return 9
-  (D == 3 && !allpositive) && return 7
-  (D == 5 && allpositive) && return 11
-  (D == 5 && !allpositive) && return 7
-  5 # a decent bet that this will be fast
+function partitions_grid_brute(N,D,allpositive=false)
+  A = zeros(Int,N+1,N+1)
+  for i = 0:N
+    A[:,i+1] = length.(quad_partitions.(0:N,i,D,allpositive))
+  end
+  A'
 end
+
+# RECURSIVE ALGORITHM USING EULER PRODUCT EXPANSION 
 
 #"""
 #Calculate the partition number p(n) of n = a + b√D
@@ -328,9 +191,9 @@ end
 #
 #if allpositive is true, calculates p₊(n)
 #"""
-@memoize function partition_number(a,b,D,allpositive=false)
+@memoize function partition_number_euler(a,b,D,allpositive=false)
   #println("Starting $a + $b√2")
-  b < 0 && return partition_number(a,-b,D,allpositive)
+  b < 0 && return partition_number_euler(a,-b,D,allpositive)
 
   if a == 0 && b == 0
     return 1
@@ -365,8 +228,8 @@ end
       #println("  ...found $eul")
       eul == 0 && continue
       #println("nonzero coef found!")
-      #pn = partition_number(i,j,D,allpositive)
-      p -= eul * partition_number(i,j,D,allpositive)
+      #pn = partition_number_euler(i,j,D,allpositive)
+      p -= eul * partition_number_euler(i,j,D,allpositive)
       #print("running total $a + $b√2: $p\n")
       #println("term added to $a + $b√2 from e_$(a-i),$(b-j): - $eul * $pn")
     end
@@ -374,21 +237,8 @@ end
   #println("done computing for $a + $b√2: got $p")
   p
 end
-export partition_number
+export partition_number_euler
 
-"""
-Generate a 2-D grid of values of p(n) of size N
-by brute-forcing it.
-
-If allpositive is true, generate p₊(n) instead
-"""
-function partitions_grid_brute(N,D,allpositive=false)
-  A = zeros(Int,N+1,N+1)
-  for i = 0:N
-    A[:,i+1] = length.(quad_partitions.(0:N,i,D,allpositive))
-  end
-  A'
-end
 
 """
 Generate a 2-D grid of values of p(n) of size N
@@ -396,18 +246,184 @@ by using the recursive Euler algorithm.
 
 If allpositive is true, generate p₊(n) instead
 """
-function partitions_grid(N,D,allpositive=false)
+function partitions_grid(N,D,allpositive=false,alg=nothing)
+  alg == nothing && (alg = partition_number)
   maxB = floor(Int, N / √D)
   A = zeros(Int,N+1,maxB+1)
   for i = 0:N
     for j = 0:maxB
       if is_wholly_positive(i,j,D)
-        A[i+1,j+1] = partition_number(i,j,D,allpositive)
+        A[i+1,j+1] = alg(i,j,D,allpositive)
       end
     end
   end
   A'
 end
 export partitions_grid
+
+# RECURSIVE ALGORITHM USING FINITE PRODUCT EXPANSION
+
+#"""
+#Calculate the integer partition number pᵣ(n)
+#which gives the number of partitions of n
+#with less than or equal to r parts
+#"""
+@memoize function partition_number_leq(n,r)
+  r == 1 && return 1
+  n == 0 && return 1
+  sum(partition_number_leq.(n:-r:0,r-1))
+end
+export partition_number_leq
+
+"""
+Returns an array of tuples of all of the 
+wholly positive integers whith a < maxA
+"""
+function all_whpstvi(maxA,D)
+  WP = [(1,0)]
+  for a = 2:maxA
+    for b = 0:floor(Int, a / √D)
+      push!(WP,(a,b))
+    end
+  end
+  WP
+end
+
+"""
+Returns true of (a,b) does not exceed (c,d) in the field
+Q(√D)
+"""
+function ds_not_exceed((a,b),(c,d),D)
+  t = a + b*√D
+  t̄ = a - b*√D
+  r = c + d*√D
+  t <= r && t̄ <= r
+end
+export ds_not_exceed
+
+# the following three algorithms are rather brute-force
+# TODO: figure out a smarter way?
+
+"""
+Returns an array of all wholly positive numbers which do not exceed
+(c,d)
+"""
+function all_ds_not_exceed((c,d),D)
+  filter(((x,y),) -> ds_not_exceed((x,y),(c,d),D), all_whpstvi(c,D))
+end
+export all_ds_not_exceed
+
+"""
+Given a wholly positive integer, gives the next wholly positive integer
+with respect to the enumeration that uses "does not exceed"
+"""
+function next_whpstvi((a,b),D)
+  rord((x,y)) = x + y*√D
+  bar((x,y)) = (x,-y)
+  r = rord((a,b))
+  nextreal = b == 0 ? a+1 : ceil(Int, r)
+
+  eligible = (s,) -> rord(bar(s)) < r && r < rord(s)
+
+  ELG = filter(eligible, all_whpstvi(a,D))
+  push!(ELG,(nextreal,0))
+
+  minind = argmin(rord.(ELG))
+  ELG[minind]
+end
+export next_whpstvi
+
+"""
+gives the greatest wholly positive integer that is less than (a,b)
+and does not exceed (a,b)
+"""
+function largest_whpstvi_lt((a,b),D)
+  (a,b)==(1,0) && throw(ArgumentException("No wholly positive numbers less than 1"))
+
+  rord((x,y)) = x + y*√D
+  r = rord((a,b))
+  
+  eligible = (s,) -> rord(s) < r && ds_not_exceed(s,(a,b),D)
+  ELG = filter(eligible, all_whpstvi(2*a,D))
+  maxind = argmax(rord.(ELG))
+  ELG[maxind]
+end
+
+"""
+Returns an iterator of all the wholly positive numbers in the
+lattice { n - (k*r + q*r̄) }
+"""
+function whpstv_lattice_lt(n,r,D)
+  bar((a,b)) = (a,-b)
+  add((a,b),(c,d)) = (a+c,b+d)
+
+  pts = Set([n])
+
+  #dont have a formula for the bounds of this for loop
+  k = 0
+  while true
+    q = 0
+    while true
+      newN = add(n, -1 .* (add(k .* r, q .* bar(r))))
+      if newN == (0,0) || is_wholly_positive(newN...,D)
+        push!(pts, newN)
+      else
+        break
+      end
+      q += 1
+    end
+    q == 0 && break
+    k += 1
+  end
+
+  pts
+end
+
+#"""
+#Recursively compute the partition number using the recursive 
+#formula for the number of partitions with parts which are
+#less than (c,d)
+#"""
+@memoize function partition_number_leq(n,r,D)
+  #println(" "^(spac), "starting p$n, r=$r")
+  #global spac += 1
+
+  # the order of these base cases matters
+  n == (0,0) && return 1#(spac -= 1; println(" "^(spac), "p(0), got 1"); return 1)
+  !is_wholly_positive(n...,D) && return 0#(spac -= 1; return 0)
+  if r == (1,0)
+    (_,b) = n
+    if b == 0
+      return 1
+      #spac -= 1; println(" "^(spac), "p$n, 1 part, got 1"); return 1
+    else
+      return 0
+      #spac -= 1; return 0
+    end
+  end
+
+  total = 0
+
+  s = largest_whpstvi_lt(r,D)
+  for nminusl in whpstv_lattice_lt(n,r,D)
+    total += partition_number_leq(nminusl,s,D)
+  end
+
+  #global spac -= 1
+  #println(" "^(spac), "p$n, r=$r got $sum")
+  total
+end
+
+"""
+Gives the partition number for a + b√D using the recursive recurrence formula
+"""
+function partition_number_recurs(a,b,D,allpositive=false)
+  allpositive && throw(ArgumentException("Ok++ not supported by this algorithm"))
+  partition_number_leq((a,b),(a,b),D)
+end
+
+partition_number = partition_number_euler
+export partition_number
+
 
 end#module

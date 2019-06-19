@@ -1,8 +1,7 @@
 module PellClasses
 
-include("./PartitionsGen.jl")
-include("./QuadraticPartitions.jl")
-using .QuadraticPartitions
+include("./EulerCoefficients.jl")
+using .EulerCoefficients
 
 using Primes
 
@@ -10,6 +9,11 @@ const PellClass{T} = Array{Tuple{T,T}}
 
 qmult((a,b),(c,d),D) = (a*c + D*b*d, b*c + a*d)
 
+"""
+Generate an 2D array which contains all of the norms
+for wholly positive numbers a + b√d which have 
+a ≦ N
+"""
 function generate_norm_array(N,D)
   M = ceil(Int, N/√D)
   NORMS = zeros(Int, N+1,M+1)
@@ -22,6 +26,7 @@ function generate_norm_array(N,D)
   end
   NORMS
 end
+export generate_norm_array
 
 # goes one member beyond limitA right now
 function pellClassFor(a,b,D=2,unit=(3,2),limitA=100)
@@ -51,7 +56,10 @@ function addconjugates(pellclass)
   collect(class)
 end
 
-
+"""
+Find all pell classes which have a primitive
+solution which is bounded by A
+"""
 function findpellclasses(A,D=2,unit=(3,2),ignoreconj=true)
   norms = generate_norm_array(A,D)
   classes = Dict{Int,Array{PellClass{Int}}}()
@@ -82,16 +90,22 @@ function findpellclasses(A,D=2,unit=(3,2),ignoreconj=true)
   end
   classes
 end
+export findpellclasses
 
-function pellclasses_to_thetafn(pellclasses)
+"""
+Compute the pell theta function 
+from a the output of findpellclasses()
+"""
+function pellthetafn(pellclasses)
   θ = zeros(Int, maximum(keys(pellclasses)))
   for (norm,classes) in pellclasses
     θ[norm] = length(classes)
   end
   θ
 end
+export pellthetafn
 
-function pellthetafn(N,D=2,unit=(3,2),ignoreconj=true)
+function pellthetafn(N,D,unit,ignoreconj)
   pellclasses_to_thetafn(findpellclasses(N,D,unit,ignoreconj))
 end
 
@@ -131,5 +145,6 @@ function theta_coef(n,D)
 
   prod(collect(values(SlvP)) .+ 1)
 end
+export theta_coef
 
 end#module

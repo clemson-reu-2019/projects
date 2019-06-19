@@ -1,11 +1,12 @@
 module Experiments
 
 include("./PartitionsGen.jl")
+include("./EulerCoefficients.jl")
 include("./QuadraticPartitions.jl")
 include("./PellClasses.jl")
-#include("./EulerCoefficients.jl")
 
 using .PartitionsGen
+using .EulerCoefficients
 using .QuadraticPartitions
 using .PellClasses
 #using .EulerCoefficients
@@ -16,6 +17,7 @@ using Plots
 using PlotUtils
 using LsqFit
 using Primes
+using OffsetArrays
 
 function O_plusplus_vis(D)
   # first index is a, second is b
@@ -44,7 +46,7 @@ function abstract_symbolic_gen(k,D)
   end
   for i in 1:k
     for nᵢ = convert(Int,ceil(i*√D)):k
-		  expr *= (1 - (x^(nᵢ)) * y^i )
+      expr *= (1 - (x^(nᵢ)) * y^i )
     end
   end
   expr
@@ -69,7 +71,7 @@ function symbolic_gen_euler(k)
   x = Sym("x")
   expr = Sym(1)
   for i = 1:k
-	expr *= (1 - x^i)
+  expr *= (1 - x^i)
   end
   expr
 end
@@ -88,16 +90,16 @@ function get_distinguished_element(a,b,D=3)
   i = 0
   xᵢ = x₀
   while true
-	i += 1
-	xᵢ₊₁ = simplify(xᵢ * expand(unit^i))
-	(a, b) = parts(xᵢ₊₁)
-	if is_wholly_positive(a,b,D) &&
-		abs(a^2 + b^2) < abs(a_best^2 + b_best^2) # euclidean norm
+  i += 1
+  xᵢ₊₁ = simplify(xᵢ * expand(unit^i))
+  (a, b) = parts(xᵢ₊₁)
+  if is_wholly_positive(a,b,D) &&
+    abs(a^2 + b^2) < abs(a_best^2 + b_best^2) # euclidean norm
       (a_best, b_best) = (a,b)
-	  xᵢ = xᵢ₊₁
-  	else
-	  break
-  	end
+    xᵢ = xᵢ₊₁
+    else
+    break
+    end
   end
   (a_best,b_best)
 end
@@ -111,7 +113,7 @@ function process_macaulay2_polynomial(filename)
 
   m2out = read(filename, String)
   # remove all ---- lines
-  lines = split(m2out, "\n")
+  lines =
   lines = filter(line -> !occursin("-----", line), lines)
   nodashes = join(lines)
   # remove all whitespace
@@ -126,7 +128,7 @@ function process_macaulay2_polynomial(filename)
   noopenbrak = replace(clsdsquare, "{" => "(")
   noclsdbrak = replace(noopenbrak, "}" => ")")
   open(filename * "jl", "w") do f
-	write(f, noclsdbrak)
+  write(f, noclsdbrak)
   end
   evalfile(filename * "jl")
 end
@@ -146,7 +148,7 @@ function process_macaulay2_data(tuples)
   recurGrid = zeros(Int, maxA+1, maxB+1)
   for i = 1:length(tuples)
     ((a,b),c) = tuples[i]
-	0 <= b && (recurGrid[a+1,b+1] = c)
+  0 <= b && (recurGrid[a+1,b+1] = c)
   end
   recurGrid
 end
@@ -217,13 +219,23 @@ function modelsqrt(ydata,c₀)
   curve_fit(model,1:length(ydata),ydata,c₀)
 end
 
+function modelratnlpower(ydata)
+  @. model(x,c) = c[1]*x^(c[2])
+  curve_fit(model,1:length(ydata),ydata,[0,0.5])
+end
+
+function modelratnlpowernoconst(ydata)
+  @. model(x,c) = x^(c[1])
+  curve_fit(model,1:length(ydata),ydata,[0.5])
+end
+
 function highestBFor(a,D)
   floor(Int, a / √D)
 end
 
 
 function comparepellclasses(N,D=2,unit=(3,2),allclasses=nothing)
-  allclasses == nothing && (allclasses = Experiments.findpellclasses(N))
+  allclasses == nothing && (allclasses = findpellclasses(N,D,unit))
   println("Evaluating all pell classes for counterexample")
   outliers = filter(pair -> 1 < length(pair[2]),allclasses)
   for (norm,classes) in outliers
@@ -264,12 +276,94 @@ function testmod(n,X)
 		end
 		if unique2==true ||  uniquenegative2==true
 			println("At Most One Case Above")
-		end
-		println("")
-	end
-
+    end
+  end
 end
 
+function partitions_parts_distr(N)
+  DIST = zeros(Int,N,N)
+  for n = 1:N
+    for r = 1:N
+      DIST[n,r] = partition_number_leq(n,r)
+    end
+  end
+  DIST
+end
+
+function all_not_exceed_bool(a,b,D,N=0)
+  N == 0 && (N = a+1)
+  A = zeros(Int, N+1, highestBFor(N,D)+1)
+  for (x,y) in QuadraticPartitions.all_whpstvi(N,D)
+    if ds_not_exceed((x,y),(a,b),D)
+      A[x+1,y+1] = 2
+    else
+      A[x+1,y+1] = 1
+    end
+  end
+  A[a+1,b+1] = 3
+  A'
+end
+
+function find_congruiences(p,mults,mods,offsets,N)
+  for i in 1:length(mults)
+    m = mults[i]
+    md = mods[i]
+    for offset in offsets
+      res = p.(m .* collect(0:N) .+ offset) .% md
+      if length(unique(res)) == 1
+        ans = res[1]
+        println("Found congruence: p($m*k + $offset) = $ans (mod $md)")
+      end
+    end
+  end
+end
+
+function sums_of_norms(N,D,unit,num=2,allowneg=false)
+  norms = [a^2 - D*b^2 for a=0:N,b=0:N]
+  if !allowneg
+    norms[norms .< 0] .= 0
+  end
+  norms = unique(norms)
+
+  range = minimum(norms):maximum(norms)
+  sums = zeros(Int, fill(range,num)...)
+  sumset = Set{Int}()
+
+  for n1 in norms
+    for n2 in norms
+      if num == 3
+        for n3 in norms
+          sums[n1,n2,n3] = n1 + n2 + n3
+          push!(sumset,n1 + n2 + n3)
+        end
+      else
+        sums[n1,n2] = n1 + n2
+        push!(sumset,n1 + n2)
+      end
+    end
+  end
+
+  if !allowneg
+    bound = floor(Int, N^2 / (unit[1] + unit[2]*√D))
+    println("Found all sums at least to $bound")
+  end
+  (sums,sort(collect(sumset)))
+end
+
+function parts_over_partitions_distr(n,p=nothing)
+  p == nothing && (p = partition_number_leq)
+  leqs = p.(n,1:n)
+  distr = zeros(Int,n)
+  distr[1] = leqs[1]
+  for i = 2:n
+    distr[i] = leqs[i] - leqs[i-1]
+  end
+  distr
+end
+
+function maxnumparts_to(N)
+  argmax.(parts_over_partitions_distr.(1:N))
+end
 
 
 end#module
