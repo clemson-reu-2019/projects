@@ -11,6 +11,9 @@ using Combinatorics
         for a₀ in Int(ceil(√d)):a
             b₀=Int(floor(a₀/√d))
             ptest=true
+            if a₀>ceil(b₀*√d)
+                ptest=false
+            end
             for x in 1:Int(floor(b₀/2))
                 if a₀≥Int(ceil((b₀-x)*√d)+ceil(x*√d))
                     ptest=false
@@ -22,6 +25,7 @@ using Combinatorics
             end
         end
         Orderings=permutations(Blocks)
+        print(Blocks)
         a₀=copy(a)
         b₀=copy(b)
         for order in Orderings
@@ -36,7 +40,6 @@ using Combinatorics
                 end
             end
             if a₀==0
-                sort!(decomposition, by =x -> x[1])
                 sort!(decomposition, by =x -> x[2])
                 push!(Decompositions,decomposition)
             end
