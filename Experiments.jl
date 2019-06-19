@@ -242,12 +242,34 @@ function comparepellclasses(N,D=2,unit=(3,2),allclasses=nothing)
 end
 
 function primesmod(N,n,X)
-	P=Primes.primes(N)
-	for a in X
-		P=filter!((x)->mod(x,n) in X,P)
-	end
-	return P
+	return filter!((x)->mod(x,n) in X,Primes.primes(N))
 end
+
+function testmod(n,X)
+    N=unique([1:n;].^2 .%n)
+	for x in X
+		unique2=true
+		uniquenegative2=true
+		for n₁ in N
+			for n₂ in N
+				if mod(n₁-x*n₂,n)==2 && unique2==true
+					println("Possible solution 2 for $x mod $n")
+					unique2=false
+				end
+				if mod(n₁-x*n₂,n)==(n-2) && uniquenegative2==true
+					println("Possible solution -2 for $x mod $n")
+					uniquenegative2=false
+				end
+			end
+		end
+		if unique2==true ||  uniquenegative2==true
+			println("At Most One Case Above")
+		end
+		println("")
+	end
+
+end
+
 
 
 end#module
