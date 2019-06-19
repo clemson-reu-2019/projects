@@ -17,6 +17,7 @@ using Plots
 using PlotUtils
 using LsqFit
 using Primes
+using OffsetArrays
 
 function O_plusplus_vis(D)
   # first index is a, second is b
@@ -112,7 +113,7 @@ function process_macaulay2_polynomial(filename)
 
   m2out = read(filename, String)
   # remove all ---- lines
-  lines = split(m2out, "\n")
+  lines =
   lines = filter(line -> !occursin("-----", line), lines)
   nodashes = join(lines)
   # remove all whitespace
@@ -218,6 +219,16 @@ function modelsqrt(ydata,c₀)
   curve_fit(model,1:length(ydata),ydata,c₀)
 end
 
+function modelratnlpower(ydata)
+  @. model(x,c) = c[1]*x^(c[2])
+  curve_fit(model,1:length(ydata),ydata,[0,0.5])
+end
+
+function modelratnlpowernoconst(ydata)
+  @. model(x,c) = x^(c[1])
+  curve_fit(model,1:length(ydata),ydata,[0.5])
+end
+
 function highestBFor(a,D)
   floor(Int, a / √D)
 end
@@ -250,7 +261,7 @@ function primesmod(N,n,X)
   return P
 end
 
-function partitions_over_parts_distr(N)
+function partitions_parts_distr(N)
   DIST = zeros(Int,N,N)
   for n = 1:N
     for r = 1:N
@@ -261,7 +272,7 @@ function partitions_over_parts_distr(N)
 end
 
 function all_not_exceed_bool(a,b,D,N=0)
-  N == 0 && (N = a)
+  N == 0 && (N = a+1)
   A = zeros(Int, N+1, highestBFor(N,D)+1)
   for (x,y) in QuadraticPartitions.all_whpstvi(N,D)
     if ds_not_exceed((x,y),(a,b),D)
@@ -270,6 +281,7 @@ function all_not_exceed_bool(a,b,D,N=0)
       A[x+1,y+1] = 1
     end
   end
+  A[a+1,b+1] = 3
   A'
 end
 
@@ -287,19 +299,21 @@ function find_congruiences(p,mults,mods,offsets,N)
   end
 end
 
-function sums_of_norms(N,D,num=2)
-  norms = generate_norm_array(N,D)
-  maxnorm = maximum(norms)
-  sums = zeros(Int, fill(maxnorm,num)...)
+function sums_of_norms(N,D,unit,num=2,allowneg=false)
+  norms = [a^2 - D*b^2 for a=0:N,b=0:N]
+  if !allowneg
+    norms[norms .< 0] .= 0
+  end
+  norms = unique(norms)
+
+  range = minimum(norms):maximum(norms)
+  sums = zeros(Int, fill(range,num)...)
   sumset = Set{Int}()
 
   for n1 in norms
-    n1 == 0 && continue
     for n2 in norms
-      n2 == 0 && continue
       if num == 3
         for n3 in norms
-          n3 == 0 && continue
           sums[n1,n2,n3] = n1 + n2 + n3
           push!(sumset,n1 + n2 + n3)
         end
@@ -309,7 +323,27 @@ function sums_of_norms(N,D,num=2)
       end
     end
   end
+
+  if !allowneg
+    bound = floor(Int, N^2 / (unit[1] + unit[2]*√D))
+    println("Found all sums at least to $bound")
+  end
   (sums,sort(collect(sumset)))
+end
+
+function parts_over_partitions_distr(n,p=nothing)
+  p == nothing && (p = partition_number_leq)
+  leqs = p.(n,1:n)
+  distr = zeros(Int,n)
+  distr[1] = leqs[1]
+  for i = 2:n
+    distr[i] = leqs[i] - leqs[i-1]
+  end
+  distr
+end
+
+function maxnumparts_to(N)
+  argmax.(parts_over_partitions_distr.(1:N))
 end
 
 end#module
