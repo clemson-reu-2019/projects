@@ -1,5 +1,4 @@
 module OnePart
-
 using Plots
 using Combinatorics
 
@@ -25,12 +24,9 @@ using Combinatorics
             end
         end
         Orderings=permutations(Blocks)
-        print(Blocks)
-        a₀=copy(a)
-        b₀=copy(b)
         for order in Orderings
-            a₀=copy(a)
-            b₀=copy(b)
+            a₀=a
+            b₀=b
             decomposition=Tuple[]
             for block in order
                 while (a₀-block[1])-abs(b₀-block[2])*√d≥0

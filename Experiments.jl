@@ -365,5 +365,57 @@ function maxnumparts_to(N)
   argmax.(parts_over_partitions_distr.(1:N))
 end
 
+function injectivetest(a,b,d,bool=false)
+  Q=QuadraticPartitions.quad_partitions(a,b,d,bool)
+  N=Array{Tuple{Int,Int}}[]
+  for Q₁ in Q
+    N₁=Tuple{Int,Int}[]
+    for i in 1:size(Q₁)[1]
+      for j in i:size(Q₁)[1]
+        ps=(Q₁[i,1]*Q₁[j,1],2*Q₁[i,2]*Q₁[j,2])
+        push!(N₁,ps)
+      end
+    end
+    sort!(N₁,by =x -> x[2])
+    push!(N,N₁)
+  end
+  return length(unique(N))==length(Q)
+end
+
+function injectivecounter(n,u,d)
+  PositiveUnits=Tuple[]
+  NegativeUnits=Tuple[]
+  counter=0
+  for a in 1:u
+    for b in 0:Int(floor(a/√d))
+      if a^2-d*b^2==1
+        push!(PositiveUnits,(a,b))
+        push!(NegativeUnits,(a,-b))
+      end
+    end
+  end
+  for a₁ in 1:n
+    for b₁ in 1:Int(floor(a₁/√d))
+      for a₂ in 1:n
+        for b₂ in 1:Int(floor(a₂/√d))
+          for u₁ in PositiveUnits
+            for u₂ in NegativeUnits
+              if u₁[1]≠u₂[1]
+                if a₁+a₂ == u₁[1]*a₁+d*u₁[2]*b₁+u₂[1]*a₂+d*u₂[2]*b₂ && b₁+b₂ == a₁*u₁[2]+b₁*u₁[1]+a₂*u₂[2]+b₂*u₂[1]
+                  println((a₁,b₁))
+                  println((a₂,b₂))
+                  println(u₁)
+                  println(u₂)
+                  counter=counter+1
+                end
+              end
+            end
+          end
+        end
+      end
+    end
+  end
+  println("$counter Counterexamples")
+end
 
 end#module
