@@ -402,10 +402,12 @@ function injectivecounter(n,u,d)
             for u₂ in NegativeUnits
               if u₁[1]≠u₂[1]
                 if a₁+a₂ == u₁[1]*a₁+d*u₁[2]*b₁+u₂[1]*a₂+d*u₂[2]*b₂ && b₁+b₂ == a₁*u₁[2]+b₁*u₁[1]+a₂*u₂[2]+b₂*u₂[1]
+                  println((a₁+a₂,b₁+b₂))
                   println((a₁,b₁))
                   println((a₂,b₂))
                   println(u₁)
                   println(u₂)
+                  println("")
                   counter=counter+1
                 end
               end
