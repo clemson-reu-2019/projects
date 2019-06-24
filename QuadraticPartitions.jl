@@ -309,7 +309,8 @@ Returns an array of all wholly positive numbers which do not exceed
 (c,d)
 """
 function all_ds_not_exceed((c,d),D)
-  filter(((x,y),) -> ds_not_exceed((x,y),(c,d),D), all_whpstvi(c,D))
+  bound = ceil(Int, c + d*√D)
+  filter(((x,y),) -> ds_not_exceed((x,y),(c,d),D), all_whpstvi(bound,D))
 end
 export all_ds_not_exceed
 
@@ -424,6 +425,5 @@ end
 
 partition_number = partition_number_euler
 export partition_number
-
 
 end#module

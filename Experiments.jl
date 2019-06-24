@@ -346,4 +346,37 @@ function maxnumparts_to(N)
   argmax.(parts_over_partitions_distr.(1:N))
 end
 
+leftside(m,a,b) = m*(m-1)*a^(m-2)*b^2
+
+rightside(m,a,b) = (a+b)^m - 2a^m + (a-b)^m
+
+function testineq(N,aRange,bRange,D)
+  for i = 1:N
+    for j = 1:highestBFor(i,D)
+      for a in aRange
+        for b in bRange
+          a < b && continue
+          m = i + j*√D
+          if leftside(m,a,b) > rightside(m,a,b) 
+            println("Bad: m=$i + $j√$D, a=$a, b=$b")
+            return
+          end
+        end
+      end
+    end
+  end
+end
+
+function factorial(a,b,D)
+  prod = BigInt(1)
+  for (x,y) in all_ds_not_exceed((a,b),D)
+    if y == 0
+      prod *= x
+    else
+      prod *= x^2 - D*y^2
+    end
+  end
+  prod
+end
+
 end#module
