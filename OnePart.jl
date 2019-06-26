@@ -2,6 +2,53 @@ module OnePart
 using Plots
 using Combinatorics
 
+    function QuickDecompositions(a,b,d)
+        Blocks=Tuple{Int,Int}[]
+        Decompositions=Array{Tuple{Int,Int}}[]
+        push!(Blocks,(1,0))
+        ptest=true
+        for a₀ in Int(ceil(√d)):a
+            b₀=Int(floor(a₀/√d))
+            ptest=true
+            if a₀>ceil(b₀*√d)
+                ptest=false
+            end
+            for x in 1:Int(floor(b₀/2))
+                if a₀≥Int(ceil((b₀-x)*√d)+ceil(x*√d))
+                    ptest=false
+                end
+            end
+            if ptest==true
+                if a-a₀>abs((b-b₀)*√d)
+                    push!(Blocks,(a₀,b₀))
+                    push!(Blocks,(a₀,-b₀))
+                end
+            end
+        end
+        n=Int(floor(sqrt(a^2-d*b^2)))
+        B=length(Blocks)
+        K=Array{Int64,1}[]
+        push!(K,digits(0, base = B, pad=n).+1)
+        for i in 1:B^n
+            push!(K,digits(i, base = B, pad=n).+1)
+        end
+        for k in K
+            decomposition=Tuple[]
+            suma=0
+            sumb=0
+            for j in 1:n
+                suma=Blocks[k[j]][1]+suma
+                sumb=Blocks[k[j]][2]+sumb
+                push!(decomposition,Blocks[k[j]])
+                if suma==a && sumb==b
+                    sort!(decomposition, by =x -> x[2])
+                    push!(Decompositions,decomposition)
+                end
+            end
+        end
+        return unique(Decompositions)
+    end
+
     function Decompositions(a,b,d)
         Blocks=Tuple{Int,Int}[]
         Decompositions=Array{Tuple{Int,Int}}[]
@@ -24,15 +71,30 @@ using Combinatorics
             end
         end
         Orderings=permutations(Blocks)
+        n=Int(floor(sqrt(a^2-d*b^2)))
+        B=length(Blocks)
+        K=Array{Int64,1}[]
+        push!(K,digits(0, base = n, pad=B).+1)
+        for i in 1:n^B
+            push!(K,digits(i, base = n, pad=B).+1)
+        end
+        OrderingsTimes=Tuple[]
         for order in Orderings
+            for k in K
+                push!(OrderingsTimes,(order,k))
+            end
+        end
+        for bt in OrderingsTimes
             a₀=a
             b₀=b
             decomposition=Tuple[]
-            for block in order
-                while (a₀-block[1])-abs(b₀-block[2])*√d≥0
-                    a₀=a₀-block[1]
-                    b₀=b₀-block[2]
-                    push!(decomposition,block)
+            for i in 1:B
+                for j in 1:bt[2][i]
+                    if (a₀-bt[1][i][1])-abs(b₀-bt[1][i][2])*√d≥0
+                        a₀=a₀-bt[1][i][1]
+                        b₀=b₀-bt[1][i][2]
+                        push!(decomposition,bt[1][i])
+                    end
                 end
             end
             if a₀==0
