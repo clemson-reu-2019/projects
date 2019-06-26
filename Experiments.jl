@@ -453,4 +453,8 @@ function injectivecounter(n,u,d)
   println("$counter Counterexamples")
 end
 
+function testbinom(n,s)
+
+end
+
 end#module

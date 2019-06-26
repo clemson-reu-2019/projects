@@ -2,6 +2,7 @@ module QuadraticPartitions
 
 include("./EulerCoefficients.jl")
 include("./TotallyLess.jl")
+include("./OnePart.jl")
 
 using Combinatorics
 using Memoize
@@ -9,6 +10,7 @@ using Primes
 using ..PartitionsGen
 using .EulerCoefficients
 using .TotallyLess
+using .OnePart
 
 # BRUTE FORCE ALGORITHM
 
@@ -184,6 +186,30 @@ function partitions_grid_brute(N,D,allpositive=false)
     A[:,i+1] = length.(quad_partitions.(0:N,i,D,allpositive))
   end
   A'
+end
+
+# BRUTE FORCE ALGORITHM USING DECOMPOSITIONS
+
+function quad_partitions_decomp(a,b,d,allpositive=false)
+  allpositive && throw(ArgumentError("Ok++ not supported!"))
+  ps = Set([])
+
+  for decomp in OnePart.Decompositions(a,b,d)
+    if all(iszero, decomp .|> x -> x[2])
+      # decomposition is integral, thus b = 0
+      for partition in partitions_of(a)
+        push!(ps, [(x, 0) for x in partition])
+      end
+    else
+      for setpart in partitions(decomp)
+        parti = map(set -> foldl((x,y) -> x .+ y, set), setpart)
+        sorted = sort(sort(parti, by = x -> x[2]), by = x -> x[1])
+        push!(ps, sorted)
+      end
+    end
+  end
+
+  collect(ps)
 end
 
 # RECURSIVE ALGORITHM USING EULER PRODUCT EXPANSION 
@@ -428,6 +454,8 @@ end
 
 partition_number = partition_number_euler
 export partition_number
+
+# RECURSIVE ALGORITHM USING THE GENERATINGFUNCTIONOLOGY METHOD
 
 #### The following code was copied from RosettaCode.com
 #### https://rosettacode.org/wiki/Proper_divisors#Julia
