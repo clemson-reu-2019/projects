@@ -493,7 +493,6 @@ end
 #"""
 @memoize function partition_number_gfology(a,b,D,allpositive=false)
   allpositive && throw(ArgumentException("Ok++ not yet supported"))
-  #println("Starting on p($a,$b)")
 
   (a,b) == (0,0) && return 1
   !is_wholly_positive(a,b,D) && return 0
@@ -514,22 +513,49 @@ end
     p_nminusm = partition_number_gfology((n .- m)...,D,allpositive)
     g = gcid(m)
 
-    #a == 4 && println("m = $m")
-    #a == 4 && println("p(n-m) = $p_nminusm")
-    coef = div.(m,g) .* σ₁(g)
-    #a == 4 && println("coef for m = $m: $coef")
     total = @. total + div(m,g) * σ₁(g) * p_nminusm
-    #a == 4 && println("total = $total")
 
   end
 
-  #a == 4 && println("total = $total")
-  #intterm = times(bar(n), total)
-  #println("n̄ * total = $intterm")
-  #nom = norm(n)
-  #println("N(n) = $nom")
   div.(times(bar(n), total), norm(n))[1]
-  #println("p($a,$b) = $res")
+end
+
+#"""
+#Gets the partition number in using the gfology-style
+#generating function
+#
+# this one uses rational numbers in the hopes that they will require
+# less big-numbered calculations, but it turns out that it doesn't
+# really help according to timing tests I've done
+#"""
+@memoize function partition_number_gfology_ratnl(a,b,D,allpositive=false)
+  allpositive && throw(ArgumentException("Ok++ not yet supported"))
+
+  (a,b) == (0,0) && return 1
+  !is_wholly_positive(a,b,D) && return 0
+  (a,b) == (1,0) && return 1
+  b < 0 && return partition_number_gfology_ratnl(a,-b,D,allpositive)
+  
+  # auxillary functions because I'm too lazy to make a datatype
+  norm((a,b)) = a^2 - D*(b^2)
+  bar((a,b)) = (a,-b)
+  times((a,b),(c,d)) = (a*c + b*d*D, b*c + a*d)
+  gcid((a,b)) = gcd(a,b)
+
+  n = (a,b)
+  whollyLessThanN = TotallyLess.listPoints(a,b,D,true)
+  total = (0//1,0//1)
+  norminv = 1//norm(n)
+
+  for m in whollyLessThanN
+    p_nminusm = partition_number_gfology_ratnl((n .- m)...,D,allpositive)
+    g = gcid(m)
+
+    total = @. total + norminv*(m * 1//g * σ₁(g) * p_nminusm)
+
+  end
+
+  convert(Int, times(bar(n), total)[1])
 end
 
 end#module
