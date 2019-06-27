@@ -2,6 +2,86 @@ module OnePart
 using Plots
 using Combinatorics
 
+    function smallb(a,b,d,u)
+        a₀=a
+        b₀=b
+        u₀=(1,0)
+        if b>0
+            while abs(b₀*u[1]-a₀*u[2])<b₀
+                a₀,b₀=(a₀*u[1]-b₀*u[2]*d),(u[1]*b₀-u[2]*a₀)
+                u₀=(u[1]*u₀[1]+d*u[2]*u₀[2],u[1]*u₀[2]+u₀[1]*u[2])
+            end
+        end
+        if b<0
+            while abs(b₀*u[1]+a₀*u[2])<b₀
+                a₀,b₀=(a₀*u[1]+b₀*u[2]*d),(u[1]*b₀+u[2]*a₀)
+                u₀=(u[1]*u₀[1]-d*u[2]*u₀[2],u[1]*u₀[2]-u₀[1]*u[2])
+            end
+        end
+        return(((a₀,b₀),u₀))
+    end
+
+    function DecompositionLength(n,d,u)
+        counter=false
+        for b₁ in 0:Int(floor(n/√d))
+            for a₁ in Int(ceil(b₁*√d)):n
+                if LongDecomposition(a₁,b₁,d,u)==false
+                    println("Counterexample for $a₁+$b₁√$d")
+                    counter=true
+                end
+            end
+        end
+        if counter==false
+            println("No counterexamples")
+        end
+    end
+
+    function LongDecomposition(a,b,d,u)
+        N=a^2-d*b^2
+        decomposition=Tuple[]
+        Blocks=Tuple{Int,Int}[]
+        um=smallb(a,b,d,u)
+        a=um[1][1]
+        b=um[1][2]
+        u=um[2]
+        push!(Blocks,(1,0))
+        for a₀ in Int(ceil(√d)):a
+            b₀=Int(floor(a₀/√d))
+            ptest=true
+            if a₀>ceil(b₀*√d)
+                ptest=false
+            end
+            for x in 1:Int(floor(b₀/2))
+                if a₀≥Int(ceil((b₀-x)*√d)+ceil(x*√d))
+                    ptest=false
+                end
+            end
+            if ptest==true
+                    if b>0 && a-a₀>abs((b-b₀)*√d)
+                        push!(Blocks,(a₀,b₀))
+                    end
+                    if b<0 && a-a₀>abs((b+b₀)*√d)
+                        push!(Blocks,(a₀,-b₀))
+                    end
+            end
+        end
+        a₀=a
+        b₀=b
+        for block in Blocks
+            while (a₀-block[1])-abs(b₀-block[2])*√d≥0
+                a₀=a₀-block[1]
+                b₀=b₀-block[2]
+                push!(decomposition,((block[1]*u[1]+d*block[2]*u[2]),(block[2]*u[1]+block[1]*u[2])))
+            end
+        end
+        if sqrt(N/d)>length(decomposition)
+            return decomposition
+        end
+        if sqrt(N/d)≤length(decomposition)
+            return decomposition
+        end
+    end
+
     function QuickDecompositions(a,b,d)
         Blocks=Tuple{Int,Int}[]
         Decompositions=Array{Tuple{Int,Int}}[]
