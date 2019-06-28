@@ -277,7 +277,7 @@ If allpositive is true, generate p₊(n) instead
 """
 function partitions_grid(t::Type,N,D,allpositive=false,alg=nothing)
   alg == nothing && (alg = partition_number)
-  maxB = floor(t, N / √D)
+  maxB = floor(Int, N / √D)
   A = zeros(t,N+1,maxB+1)
   for i = zero(t):N
     for j = zero(t):maxB

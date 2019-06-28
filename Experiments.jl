@@ -453,8 +453,22 @@ function injectivecounter(n,u,d)
   println("$counter Counterexamples")
 end
 
-function testbinom(n,s)
+function process_grid(filename,D)
+  grid = readdlm(filename, Int128)
+  ovflowind = findfirst(grid[1,:] .< 0)
+  ovflowind == nothing && return grid
+  reducedgrid = grid[1:highestBFor(ovflowind-1,D),1:(ovflowind-1)]
+  count(reducedgrid .< 0) != 0 && println("Found some error $D")
+  reducedgrid
+end
 
+function process_all_files()
+  # 3 is the files, as opposed to the directories or the prefix
+  filenames = collect(walkdir("./data"))[1][3]
+  ds = parse.(Int,map(x -> x[1], match.(r"grid(\d*)",filenames)))
+
+  grids = process_grid.("./data/" .* filenames,ds)
+  Dict([(ds[i],grids[i]) for i in 1:length(ds)]) 
 end
 
 end#module
