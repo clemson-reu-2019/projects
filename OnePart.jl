@@ -25,18 +25,18 @@ using Combinatorics
         counter=false
         for b₁ in 0:Int(floor(n/√d))
             for a₁ in Int(ceil(b₁*√d)):n
-                if LongDecomposition(a₁,b₁,d,u)==false
+                if LongDecomposition(a₁,b₁,d,u)≠true
                     println("Counterexample for $a₁+$b₁√$d")
                     counter=true
                 end
             end
         end
-        if counter==false
+        if ~counter
             println("No counterexamples")
         end
     end
 
-    function LongDecomposition(a,b,d,u)
+    function LongDecomposition(a,b,d,u,output=false)
         N=a^2-d*b^2
         decomposition=Tuple[]
         Blocks=Tuple{Int,Int}[]
@@ -44,7 +44,6 @@ using Combinatorics
         a=um[1][1]
         b=um[1][2]
         u=um[2]
-        push!(Blocks,(1,0))
         for a₀ in Int(ceil(√d)):a
             b₀=Int(floor(a₀/√d))
             ptest=true
@@ -56,29 +55,33 @@ using Combinatorics
                     ptest=false
                 end
             end
-            if ptest==true
-                    if b>0 && a-a₀>abs((b-b₀)*√d)
-                        push!(Blocks,(a₀,b₀))
-                    end
-                    if b<0 && a-a₀>abs((b+b₀)*√d)
-                        push!(Blocks,(a₀,-b₀))
-                    end
+            if ptest
+                if b>0 && a-a₀≥abs((b-b₀)*√d)
+                    push!(Blocks,(a₀,b₀))
+                end
+                if b<0 && a-a₀≥abs((b+b₀)*√d)
+                    push!(Blocks,(a₀,-b₀))
+                end
             end
         end
+        push!(Blocks,(1,0))
         a₀=a
         b₀=b
         for block in Blocks
-            while (a₀-block[1])-abs(b₀-block[2])*√d≥0
+            while (a₀-block[1])-abs(b₀-block[2])*√d≥0 && abs(b₀-block[2])*abs(b)==(b₀-block[2])*b
                 a₀=a₀-block[1]
                 b₀=b₀-block[2]
                 push!(decomposition,((block[1]*u[1]+d*block[2]*u[2]),(block[2]*u[1]+block[1]*u[2])))
             end
         end
-        if sqrt(N/d)>length(decomposition)
+        if output
             return decomposition
         end
+        if sqrt(N/d)>length(decomposition)
+            return false
+        end
         if sqrt(N/d)≤length(decomposition)
-            return decomposition
+            return true
         end
     end
 
@@ -98,7 +101,7 @@ using Combinatorics
                     ptest=false
                 end
             end
-            if ptest==true
+            if ptest
                 if a-a₀>abs((b-b₀)*√d)
                     push!(Blocks,(a₀,b₀))
                     push!(Blocks,(a₀,-b₀))
@@ -145,7 +148,7 @@ using Combinatorics
                     ptest=false
                 end
             end
-            if ptest==true
+            if ptest
                 push!(Blocks,(a₀,b₀))
                 push!(Blocks,(a₀,-b₀))
             end
@@ -234,7 +237,7 @@ using Combinatorics
                 end
                 N=Norm(a,b,d)
             end
-            if ptest==true && N>maxnorm
+            if ptest && N>maxnorm
                 maxnorm=N
                 maxa=a
                 maxb=b
@@ -254,7 +257,7 @@ using Combinatorics
                 end
                 N=Norm(a,b,d)
             end
-            if ptest==true
+            if ptest
                 push!(A,(a,b))
             end
         end
