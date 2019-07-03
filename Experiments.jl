@@ -453,8 +453,8 @@ function injectivecounter(n,u,d)
   println("$counter Counterexamples")
 end
 
-function process_grid(filename,D)
-  grid = readdlm(filename, Int128)
+function process_grid(t::Type,filename,D)
+  grid = readdlm(filename, t)
   ovflowind = findfirst(grid[1,:] .< 0)
   ovflowind == nothing && return grid
   reducedgrid = grid[1:highestBFor(ovflowind-1,D),1:(ovflowind-1)]
@@ -462,13 +462,23 @@ function process_grid(filename,D)
   reducedgrid
 end
 
-function process_all_files()
+function process_all_files(t::Type)
   # 3 is the files, as opposed to the directories or the prefix
   filenames = collect(walkdir("./data"))[1][3]
   ds = parse.(Int,map(x -> x[1], match.(r"grid(\d*)",filenames)))
 
-  grids = process_grid.("./data/" .* filenames,ds)
+  grids = process_grid.(t,"./data/" .* filenames,ds)
   Dict([(ds[i],grids[i]) for i in 1:length(ds)]) 
+end
+
+function testdivision(t::Type,alg,N,lim=100001)
+  numers = rand(one(t):lim,N)
+  denoms = rand(one(t):1000,N)
+  outputs = zeros(t,N)
+  for i in 1:N
+    outputs[i] = alg(numers[i],denoms[i])
+  end
+  outputs
 end
 
 end#module
