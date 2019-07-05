@@ -468,7 +468,17 @@ function process_all_files(t::Type)
   ds = parse.(Int,map(x -> x[1], match.(r"grid(\d*)",filenames)))
 
   grids = process_grid.(t,"./data/" .* filenames,ds)
-  Dict([(ds[i],grids[i]) for i in 1:length(ds)]) 
+  gridict = Dict()
+  for i in 1:length(ds)
+    d = ds[i]
+    if d in keys(gridict)
+      gridict[d] = EulerCoefficients.merge_matrices(gridict[d],grids[i])
+    else
+      gridict[d] = grids[i]
+    end
+  end
+  #Dict([(ds[i],grids[i]) for i in 1:length(ds)]) 
+  gridict
 end
 
 function testdivision(t::Type,alg,N,lim=100001)
