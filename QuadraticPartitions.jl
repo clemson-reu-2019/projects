@@ -575,4 +575,58 @@ export partition_number
   convert(Int, times(bar(n), total)[1])
 end
 
+# DYNAMIC ALGORITHM USING GENERATING FUNCTIONOLOGY 
+
+function calc_partition_num(a,b,D,recurs)
+  (a,b) == (0,0) && return 1
+  !is_wholly_positive(a,b,D) && return 0
+  (a,b) == (1,0) && return 1
+
+  b = abs(b)
+
+  if D == 2 # remove this restriction later; we need the unit
+    (a₁,b₁) = minelement(pellClassFor(a,b,D,(3,2),a))
+    (a₁,b₁) != (a,b) && ( return recurs(a₁,b₁) )
+  end
+    
+  # auxillary functions because I'm too lazy to make a datatype
+  norm((a,b)) = a^2 - D*(b^2)
+  bar((a,b)) = (a,-b)
+  times((a,b),(c,d)) = (a*c + b*d*D, b*c + a*d)
+  gcid((a,b)) = gcd(a,b)
+
+  n = (a,b)
+  whollyLessThanN = TotallyLess.listPoints(a,b,D,true)
+  total = (0,0)
+  
+  for m in reverse(whollyLessThanN)
+    p_nminusm = recurs((n .- m)...)
+    #l = n .- m
+    g = gcid(m)
+
+    total = @. total + div(m,g) * σ₁(g) * p_nminusm
+  end
+  
+  div.(times(bar(n), total), norm(n))[1]
+end
+
+function partition_number_dynamic(a,b,D,data,verbose=false)
+  # assumes p(0,0) is 1!!!  
+  p(a,b) = data[abs(b)+1,a+1]
+
+  val = p(a,b)
+  !ismissing(val) && ( return (data,val) )
+
+  allTtllyLess = TotallyLess.listPoints(a,b,D,true)
+  for (c,d) in allTtllyLess
+    !ismissing(p(c,d)) && ( continue )
+    
+    # calculate the partition number for (c,d)
+    data[abs(d)+1,c+1] = calc_partition_num(c,d,D,p)
+    verbose && ( nm = p(c,d) ; println("($c,$d): $nm"))
+  end
+  
+  (data,p(a,b))
+end
+
 end#module
