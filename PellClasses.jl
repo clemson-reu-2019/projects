@@ -45,8 +45,15 @@ function pellClassFor(a,b,D=2,unit=(3,2),limitA=100)
   end
   class
 end
+export pellClassFor
 
 samepellclass(cl1,cl2) = (Set(cl1) == Set(cl2))
+
+function minelement(class)
+  minind = argmin(map(t -> t[1],class))
+  class[minind]
+end
+export minelement
 
 function addconjugates(pellclass)
   class = Set(pellclass)

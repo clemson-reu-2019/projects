@@ -3,6 +3,7 @@ module QuadraticPartitions
 include("./EulerCoefficients.jl")
 include("./TotallyLess.jl")
 include("./OnePart.jl")
+include("./PellClasses.jl")
 
 using Combinatorics
 using Memoize
@@ -11,6 +12,7 @@ using ..PartitionsGen
 using .EulerCoefficients
 using .TotallyLess
 using .OnePart
+using .PellClasses
 
 # BRUTE FORCE ALGORITHM
 
@@ -275,14 +277,14 @@ by using the recursive Euler algorithm.
 
 If allpositive is true, generate p₊(n) instead
 """
-function partitions_grid(t::Type,N,D,allpositive=false,alg=nothing)
+function partitions_grid(t::Type,N,D,allpositive=false,alg=nothing,data=nothing)
   alg == nothing && (alg = partition_number)
   maxB = floor(Int, N / √D)
   A = zeros(t,N+1,maxB+1)
   for i = zero(t):N
     for j = zero(t):maxB
       if is_wholly_positive(i,j,D)
-        A[i+1,j+1] = alg(i,j,D,allpositive)
+        A[i+1,j+1] = alg(i,j,D,allpositive,data)
       end
     end
   end
@@ -454,9 +456,6 @@ function partition_number_recurs(a,b,D,allpositive=false)
   partition_number_leq((a,b),(a,b),D)
 end
 
-partition_number = partition_number_euler
-export partition_number
-
 # RECURSIVE ALGORITHM USING THE GENERATINGFUNCTIONOLOGY METHOD
 
 #### The following code was copied from RosettaCode.com
@@ -493,14 +492,23 @@ end
 #Gets the partition number in using the gfology-style
 #generating function
 #"""
-@memoize Dict function partition_number_gfology(a,b,D,allpositive=false)
+@memoize Dict function partition_number_gfology(a,b,D,allpositive=false,data=nothing,verbose=false)
   allpositive && throw(ArgumentException("Ok++ not yet supported"))
 
   (a,b) == (0,0) && return 1
   !is_wholly_positive(a,b,D) && return 0
   (a,b) == (1,0) && return 1
-  b < 0 && return partition_number_gfology(a,-b,D,allpositive)
-  
+  b < 0 && return partition_number_gfology(a,-b,D,allpositive,data)
+
+  if data != nothing
+    a <= size(data,2) - 1 && ( return data[b+1,a+1] )
+  end
+
+  if D == 2 # remove this restriction later; we need the unit
+    (a₁,b₁) = minelement(pellClassFor(a,b,D,(3,2),a))
+    (a₁,b₁) != (a,b) && ( return partition_number_gfology(a₁,b₁,D,allpositive,data) )
+  end
+    
   # auxillary functions because I'm too lazy to make a datatype
   norm((a,b)) = a^2 - D*(b^2)
   bar((a,b)) = (a,-b)
@@ -510,17 +518,24 @@ end
   n = (a,b)
   whollyLessThanN = TotallyLess.listPoints(a,b,D,true)
   total = (0,0)
+  
+  verbose && ( l = length(whollyLessThanN); println("$l possible parts") )
 
-  for m in whollyLessThanN
-    p_nminusm = partition_number_gfology((n .- m)...,D,allpositive)
+  for m in reverse(whollyLessThanN)
+    p_nminusm = partition_number_gfology((n .- m)...,D,allpositive,data)
     g = gcid(m)
 
     total = @. total + div(m,g) * σ₁(g) * p_nminusm
 
+    (verbose) && ( i = n .- m; println("$i ... tot=$total") )
   end
 
+  verbose && ( println("grand total is... $total") )
+  
   div.(times(bar(n), total), norm(n))[1]
 end
+partition_number = partition_number_gfology
+export partition_number
 
 #"""
 #Gets the partition number in using the gfology-style
