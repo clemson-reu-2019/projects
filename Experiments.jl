@@ -18,6 +18,7 @@ using PlotUtils
 using LsqFit
 using Primes
 using OffsetArrays
+using BitIntegers
 
 function O_plusplus_vis(D)
   # first index is a, second is b
@@ -531,6 +532,18 @@ function plusidentitydatacube(N,p)
   [ (p(i)^3) / p(3*i) for i in 1:N]
 end
 
+function testdynamicalg(a,b,D,table)
+  data = Array{Union{Missing, Int1024}}(missing, a+1,a+1)
+  firstN = table[1:a,1:a]
+  data[axes(firstN)...] = firstN
+  @time QuadraticPartitions.partition_number_dynamic(Int1024(a),Int1024(b),D,data)
+end
 
+function testdynamicalgdiffdata(a,a₀,D,table)
+  data = Array{Union{Missing, Int1024}}(missing, a+1,a+1)
+  firstN = deepcopy(table[1:(a₀+1),1:(a₀+1)])
+  data[axes(firstN)...] = firstN
+  data
+end
 
 end#module
