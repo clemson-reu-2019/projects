@@ -229,6 +229,23 @@ function modelratnlpowernoconst(ydata)
   curve_fit(model,1:length(ydata),ydata,[0.5])
 end
 
+function modelpartitionquotient(xrange,ydata)
+  @. model(x,c) = c[1]*x^(2 / (2 + c[2])) + c[3]
+  curve_fit(model,xrange,ydata,[1.0,1.0,0])
+end
+
+function modeltwoplusϵ(ϵ,xrange,ydata)
+  @. model(x,c) = c[1]*x^(2 / (2 + ϵ))
+  curve_fit(model,xrange,ydata,[1.0])
+end
+
+function fitpartitionquotient(range,data)
+  fit = modelpartitionquotient(range,log.(data[range]))
+  c = coef(fit)
+  f(x) = c[1]*x^(2 / (2 + c[2])) + c[3]
+  (f,c[2])
+end
+
 function highestBFor(a,D)
   floor(Int, a / √D)
 end
@@ -304,12 +321,19 @@ function all_not_exceed_bool(a,b,D,N=0)
   A'
 end
 
-function find_congruiences(p,mults,mods,offsets,N)
+function find_congruences(p,base,mults,mods,offsets,N)
+  length(mults) != length(mods) && ( throw(ArgumentError("there must be the same number of multaplicative factors and modulos")) )
+  
   for i in 1:length(mults)
     m = mults[i]
     md = mods[i]
     for offset in offsets
-      res = p.(m .* collect(0:N) .+ offset) .% md
+      scales = m .* collect(0:N) .+ offset
+      (a,b) = base
+      res = zeros(Int,length(scales))
+      for i in 1:length(scales)
+        res[i] = convert(Int, p((scales[i] .* base)...) .% md)
+      end
       if length(unique(res)) == 1
         ans = res[1]
         println("Found congruence: p($m*k + $offset) = $ans (mod $md)")
@@ -317,6 +341,8 @@ function find_congruiences(p,mults,mods,offsets,N)
     end
   end
 end
+
+find_congruences(p,mults,mods,offsets,N) = find_congruences(p,(1,0),mults,mods,offsets,N)
 
 function sums_of_norms(N,D,unit,num=2,allowneg=false)
   norms = [a^2 - D*b^2 for a=0:N,b=0:N]
@@ -490,5 +516,21 @@ function testdivision(t::Type,alg,N,lim=100001)
   end
   outputs
 end
+
+function testplusidentity(N,p)
+  for i in 1:N
+    p(2*i) >= p(i)^2 && ( print("$i ") )
+  end
+end
+
+function plusidentitydata(N,p)
+  [ (p(i)^2) / p(2*i) for i in 1:N]
+end
+
+function plusidentitydatacube(N,p)
+  [ (p(i)^3) / p(3*i) for i in 1:N]
+end
+
+
 
 end#module
