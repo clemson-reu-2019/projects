@@ -275,14 +275,14 @@ by using the recursive Euler algorithm.
 
 If allpositive is true, generate p₊(n) instead
 """
-function partitions_grid(t::Type,N,D,allpositive=false,alg=nothing)
+function partitions_grid(t::Type,N,D,allpositive=false,alg=nothing,divsn=div)
   alg == nothing && (alg = partition_number)
   maxB = floor(Int, N / √D)
   A = zeros(t,N+1,maxB+1)
   for i = zero(t):N
     for j = zero(t):maxB
       if is_wholly_positive(i,j,D)
-        A[i+1,j+1] = alg(i,j,D,allpositive)
+        A[i+1,j+1] = alg(i,j,D,allpositive,divsn)
       end
     end
   end
@@ -454,8 +454,6 @@ function partition_number_recurs(a,b,D,allpositive=false)
   partition_number_leq((a,b),(a,b),D)
 end
 
-partition_number = partition_number_euler
-export partition_number
 
 # RECURSIVE ALGORITHM USING THE GENERATINGFUNCTIONOLOGY METHOD
 
@@ -493,7 +491,7 @@ end
 #Gets the partition number in using the gfology-style
 #generating function
 #"""
-@memoize Dict function partition_number_gfology(a,b,D,allpositive=false)
+@memoize Dict function partition_number_gfology(a,b,D,allpositive=false,divsn=div)
   allpositive && throw(ArgumentException("Ok++ not yet supported"))
 
   (a,b) == (0,0) && return 1
@@ -515,49 +513,14 @@ end
     p_nminusm = partition_number_gfology((n .- m)...,D,allpositive)
     g = gcid(m)
 
-    total = @. total + div(m,g) * σ₁(g) * p_nminusm
+    total = @. total + divsn(m,g) * σ₁(g) * p_nminusm
 
   end
 
-  div.(times(bar(n), total), norm(n))[1]
+  divsn.(times(bar(n), total), norm(n))[1]
 end
 
-#"""
-#Gets the partition number in using the gfology-style
-#generating function
-#
-# this one uses rational numbers in the hopes that they will require
-# less big-numbered calculations, but it turns out that it doesn't
-# really help according to timing tests I've done
-#"""
-@memoize function partition_number_gfology_ratnl(a,b,D,allpositive=false)
-  allpositive && throw(ArgumentException("Ok++ not yet supported"))
-
-  (a,b) == (0,0) && return 1
-  !is_wholly_positive(a,b,D) && return 0
-  (a,b) == (1,0) && return 1
-  b < 0 && return partition_number_gfology_ratnl(a,-b,D,allpositive)
-  
-  # auxillary functions because I'm too lazy to make a datatype
-  norm((a,b)) = a^2 - D*(b^2)
-  bar((a,b)) = (a,-b)
-  times((a,b),(c,d)) = (a*c + b*d*D, b*c + a*d)
-  gcid((a,b)) = gcd(a,b)
-
-  n = (a,b)
-  whollyLessThanN = TotallyLess.listPoints(a,b,D,true)
-  total = (0//1,0//1)
-  norminv = 1//norm(n)
-
-  for m in whollyLessThanN
-    p_nminusm = partition_number_gfology_ratnl((n .- m)...,D,allpositive)
-    g = gcid(m)
-
-    total = @. total + norminv*(m * 1//g * σ₁(g) * p_nminusm)
-
-  end
-
-  convert(Int, times(bar(n), total)[1])
-end
+partition_number = partition_number_gfology
+export partition_number
 
 end#module
