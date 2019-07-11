@@ -323,7 +323,7 @@ end
 
 function find_congruences(p,base,mults,mods,offsets,N)
   length(mults) != length(mods) && ( throw(ArgumentError("there must be the same number of multaplicative factors and modulos")) )
-  
+
   for i in 1:length(mults)
     m = mults[i]
     md = mods[i]
@@ -402,7 +402,7 @@ function testineq(N,aRange,bRange,D)
         for b in bRange
           a < b && continue
           m = i + j*√D
-          if leftside(m,a,b) > rightside(m,a,b) 
+          if leftside(m,a,b) > rightside(m,a,b)
             println("Bad: m=$i + $j√$D, a=$a, b=$b")
             return
           end
@@ -503,7 +503,7 @@ function process_all_files(t::Type)
       gridict[d] = grids[i]
     end
   end
-  #Dict([(ds[i],grids[i]) for i in 1:length(ds)]) 
+  #Dict([(ds[i],grids[i]) for i in 1:length(ds)])
   gridict
 end
 
@@ -524,7 +524,7 @@ function testplusidentity(N,p)
 end
 
 function plusidentitydata(N,p)
-  [ (p(i)^2) / p(2*i) for i in 1:N]
+  [ (p[i]^2) / p[2*i] for i in 1:N]
 end
 
 function plusidentitydatacube(N,p)

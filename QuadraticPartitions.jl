@@ -15,7 +15,7 @@ using .OnePart
 # BRUTE FORCE ALGORITHM
 
 """
-Takes a partition p of some integer a, and 
+Takes a partition p of some integer a, and
 a partition q of some integer b, and an injective
 function (in the form of a permutation) from the
 parts of q to the parts of p which defines a
@@ -62,8 +62,8 @@ Generate all partitions of a + b√D in Q(√D)
 If allpositive is true, then search for partitions
 in O₊₊
 
-Otherwise, if allpositive is false, 
-find partitions in O₊ 
+Otherwise, if allpositive is false,
+find partitions in O₊
 """
 function quad_partitions(a,b,D,allpositive=false)
   bound = a - b*floor(Int,√D)
@@ -132,8 +132,8 @@ function generalized_partitions(b,maxNumParts,maxpart)
   for i = 1:N
     plists[i] = partitions_lessterms_leq(i,maxNumParts,maxpart)
   end
-  
-  if b != 0 
+
+  if b != 0
     0 < b && append!(ps,partitions_lessterms(b,maxNumParts))
     b < 0 && append!(ps,-1 .* reverse.(plists[-b]))
   end
@@ -161,7 +161,7 @@ export generalized_partitions
 end
 
 #"""
-#Give the biggest value of a and b where the 
+#Give the biggest value of a and b where the
 #brute force algorithm is performant, tested manually.
 #"""
 #function p_num_brute_force_bound(D,allpositive=false)
@@ -212,7 +212,7 @@ function quad_partitions_decomp(a,b,d,allpositive=false)
   collect(ps)
 end
 
-# RECURSIVE ALGORITHM USING EULER PRODUCT EXPANSION 
+# RECURSIVE ALGORITHM USING EULER PRODUCT EXPANSION
 
 #"""
 #Calculate the partition number p(n) of n = a + b√D
@@ -229,12 +229,12 @@ end
   end
 
   # So it turns out that the brute force is still much slower
-  # than this algorithm even at very small values... 
+  # than this algorithm even at very small values...
   # honestly not that surprising, but for that reaason
   # the fallback is not necessary:
   #
   # b is necessarily less than a
-  #if a <= p_num_brute_force_bound(D,allpositive) 
+  #if a <= p_num_brute_force_bound(D,allpositive)
   #  #print("$a found: brute\n")
   #  return partition_number_brute(a,b,D,allpositive)
   #end
@@ -291,7 +291,7 @@ end
 export partitions_grid
 
 partitions_grid(N,D,allpositive=false,alg=nothing) = partitions_grid(Int,N,D,allpositive,alg)
-    
+
 # RECURSIVE ALGORITHM USING FINITE PRODUCT EXPANSION
 
 #"""
@@ -299,15 +299,15 @@ partitions_grid(N,D,allpositive=false,alg=nothing) = partitions_grid(Int,N,D,all
 #which gives the number of partitions of n
 #with less than or equal to r parts
 #"""
-@memoize function partition_number_leq(n,r)
-  r == 1 && return 1
-  n == 0 && return 1
-  sum(partition_number_leq.(n:-r:0,r-1))
+@memoize function partition_number_leq(t::Type,n,r)
+  r == 1 && return one(t)
+  n == 0 && return one(t)
+  sum(partition_number_leq.(t,n:-r:0,r-1))
 end
 export partition_number_leq
 
 """
-Returns an array of tuples of all of the 
+Returns an array of tuples of all of the
 wholly positive integers whith a < maxA
 """
 function all_whpstvi(maxA,D)
@@ -374,7 +374,7 @@ function largest_whpstvi_lt((a,b),D)
 
   rord((x,y)) = x + y*√D
   r = rord((a,b))
-  
+
   eligible = (s,) -> rord(s) < r && ds_not_exceed(s,(a,b),D)
   ELG = filter(eligible, all_whpstvi(2*a,D))
   maxind = argmax(rord.(ELG))
@@ -412,7 +412,7 @@ function whpstv_lattice_lt(n,r,D)
 end
 
 #"""
-#Recursively compute the partition number using the recursive 
+#Recursively compute the partition number using the recursive
 #formula for the number of partitions with parts which are
 #less than (c,d)
 #"""
@@ -464,7 +464,7 @@ export partition_number
 ####
 #### ... and it was adapted for the purposes of this project.
 ####
-#### This code thus uses the GNU Free Documentation Liscense         
+#### This code thus uses the GNU Free Documentation Liscense
 #### https://www.gnu.org/licenses/old-licenses/fdl-1.2.html
 
 function properdivisors(n)
@@ -500,7 +500,7 @@ end
   !is_wholly_positive(a,b,D) && return 0
   (a,b) == (1,0) && return 1
   b < 0 && return partition_number_gfology(a,-b,D,allpositive)
-  
+
   # auxillary functions because I'm too lazy to make a datatype
   norm((a,b)) = a^2 - D*(b^2)
   bar((a,b)) = (a,-b)
@@ -537,7 +537,7 @@ end
   !is_wholly_positive(a,b,D) && return 0
   (a,b) == (1,0) && return 1
   b < 0 && return partition_number_gfology_ratnl(a,-b,D,allpositive)
-  
+
   # auxillary functions because I'm too lazy to make a datatype
   norm((a,b)) = a^2 - D*(b^2)
   bar((a,b)) = (a,-b)
