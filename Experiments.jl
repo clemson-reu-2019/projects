@@ -485,8 +485,11 @@ function process_grid(t::Type,filename,D)
   ovflowind = findfirst(grid[1,:] .< 0)
   ovflowind == nothing && return grid
   reducedgrid = grid[1:highestBFor(ovflowind-1,D),1:(ovflowind-1)]
-  count(reducedgrid .< 0) != 0 && println("Found some error $D")
-  reducedgrid
+  mgrid = convert(Array{Union{t,Missing}}, reducedgrid)
+  print(typeof(mgrid))
+  mgrid[mgrid .== t(-1)] .= missing
+  #count(mgrid .< 0) != 0 && println("Found some error $D")
+  mgrid
 end
 
 function process_all_files(t::Type)
