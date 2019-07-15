@@ -88,7 +88,9 @@ using Combinatorics
     function QuickDecompositions(a,b,d)
         Blocks=Tuple{Int,Int}[]
         Decompositions=Array{Tuple{Int,Int}}[]
-        push!(Blocks,(1,0))
+        if a-1-abs(b)*√d>0
+            push!(Blocks,(1,0))
+        end
         ptest=true
         for a₀ in Int(ceil(√d)):a
             b₀=Int(floor(a₀/√d))
@@ -102,7 +104,7 @@ using Combinatorics
                 end
             end
             if ptest
-                if a-a₀>abs((b-b₀)*√d)
+                if a-a₀≥abs((b-b₀)*√d)
                     push!(Blocks,(a₀,b₀))
                     push!(Blocks,(a₀,-b₀))
                 end
@@ -110,6 +112,14 @@ using Combinatorics
         end
         n=Int(floor(sqrt(a^2-d*b^2)))
         B=length(Blocks)
+        if B==1
+            decomposition=Tuple[]
+            for i in 1:n
+                push!(decomposition, Blocks[1])
+            end
+            push!(Decompositions,decomposition)
+            return Decompositions
+        end
         K=Array{Int64,1}[]
         push!(K,digits(0, base = B, pad=n).+1)
         for i in 1:B^n
