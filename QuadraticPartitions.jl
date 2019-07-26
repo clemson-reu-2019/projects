@@ -308,6 +308,16 @@ partitions_grid(N,D,allpositive=false,alg=nothing) = partitions_grid(Int,N,D,all
 end
 export partition_number_leq
 
+function partition_number_leq_array(t::Type,n,r)
+  partitiongrid=fill(zero(t),n+1,r)
+  for n₀ in 0:n
+    partitiongrid[n₀+1,1]=one(t)
+    for r₀ in 2:min(r,n₀)
+      partitiongrid[n₀+1,r₀]=partitiongrid[n₀,r₀-1]+partitiongrid[n₀+1-r₀,r₀]
+    end
+  end
+  return sum(partitiongrid[n+1,1:r])
+end
 """
 Returns an array of tuples of all of the
 wholly positive integers whith a < maxA
