@@ -26,6 +26,13 @@ COEF_DATA = Dict{Tuple{Int,Bool},Matrix{Union{Int, Missing}}}()
 
 reset_coefs() = (global COEF_DATA = Dict{Tuple{Int,Bool},Matrix{Union{Int, Missing}}}())
 
+function readdlm_withmissings(t::Type,filename)
+  M = convert(Matrix{Any}, readdlm(filename))
+  M[M .== "missing"] .= missing
+  convert(Matrix{Union{t, Missing}},M)
+end
+export readdlm_withmissings
+
 """
 Loads data from sqrt*.dat files into 
 the dictionary COEF_DATA.
@@ -46,9 +53,9 @@ function load_data()
     end
 
     D = parse(Int, idstr)
-	M = convert(Matrix{Any}, readdlm(file))
-	M[M .== "missing"] .= missing
-	M = convert(Matrix{Union{Int, Missing}},M)
+    M = convert(Matrix{Any}, readdlm(file))
+    M[M .== "missing"] .= missing
+    M = convert(Matrix{Union{Int, Missing}},M)
     COEF_DATA[(D,allpositive)] = M
   end
 end
@@ -83,7 +90,7 @@ function merge_matrices(M,N)
     for k = 1:minimum(sizes[:,2])
       if (M[j,k] !== missing && N[j,k] !== missing) && M[j,k] != N[j,k]
         throw(ArgumentError("""Error: cannot merge two matrices
-							Reason: they have different entries at $j,$k"""))
+              Reason: they have different entries at $j,$k"""))
       end
     end
   end

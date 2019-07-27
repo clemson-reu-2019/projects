@@ -480,15 +480,40 @@ function injectivecounter(n,u,d)
   println("$counter Counterexamples")
 end
 
+"""
+the following has become a bit of sphaghetti,
+in an effort to support arrays which might have
+missing values, might have overflowed values,
+and might have missing values set to -1. Hopefully
+this whole code won't be run much more, so this
+won't need to be messed with too much.
+"""
 function process_grid(t::Type,filename,D)
-  grid = readdlm(filename, t)
-  ovflowind = findfirst(grid[1,:] .< 0)
-  ovflowind == nothing && return grid
-  reducedgrid = grid[1:highestBFor(ovflowind-1,D),1:(ovflowind-1)]
+  println("Reading $filename...")
+  grid = readdlm_withmissings(t, filename)
+
+  # assumes that if there is a negative value in
+  #  the array at all, then there are no missings
+  #  in between the first row and the first
+  #  negative value.
+  ovflow_occurs = foldl((accum,x) -> accum && (ismissing(x) || x), grid .< 0)
+  if ovflow_occurs
+    ovflowind = findfirst(grid[1,:] .< 0)
+    ovflowind == nothing && return grid
+    reducedgrid = grid[1:highestBFor(ovflowind-1,D),1:(ovflowind-1)]
+  else
+    reducedgrid = grid
+  end
   mgrid = convert(Array{Union{t,Missing}}, reducedgrid)
-  print(typeof(mgrid))
-  mgrid[mgrid .== t(-1)] .= missing
+  # account for possibilities of missings
+  neg1inds = mgrid .== t(-1)
+  neg1inds[ismissing.(neg1inds)] .= false
+  mgrid[convert(Array{Bool}, neg1inds)] .= missing
   #count(mgrid .< 0) != 0 && println("Found some error $D")
+  
+  # forcefully set p(0)
+  mgrid[1,1] = 1
+
   mgrid
 end
 
@@ -501,6 +526,7 @@ function process_all_files(t::Type)
   gridict = Dict()
   for i in 1:length(ds)
     d = ds[i]
+    println("Merging in d = √$d")
     if d in keys(gridict)
       gridict[d] = EulerCoefficients.merge_matrices(gridict[d],grids[i])
     else

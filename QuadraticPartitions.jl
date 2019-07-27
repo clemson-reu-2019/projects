@@ -610,6 +610,11 @@ function calc_partition_num(a,b,D,recurs)
   div.(times(bar(n), total), norm(n))[1]
 end
 
+"""
+To start anew, data must be an array
+full of missings but which has data[1,1] == 1
+at the intex (1,1).
+"""
 function partition_number_dynamic(a,b,D,data,verbose=false)
   # assumes p(0,0) is 1!!!
   p(a,b) = data[abs(b)+1,a+1]
