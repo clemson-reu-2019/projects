@@ -11,14 +11,14 @@ using BitIntegers
         p₂=2
         counterbool=false
         for n in 2:bound
-            pₙ=partition_number_leq(Int1024,Int1024(n),Int1024(n))
-            pₓ=partition_number_leq(Int1024,Int1024(2*n),Int1024(2*n))
+            pₙ=QuadraticPartitions.partition_number_leq_array(Int1024,Int1024(n),Int1024(n))
+            pₓ=QuadraticPartitions.partition_number_leq_array(Int1024,Int1024(2*n),Int1024(2*n))
             if (p₂*pₙ)≤pₓ
                 println("Checked m=2 and n=$n: NO COUNTEREXAMPLE")
             end
             if (p₂*pₙ)>pₓ
                 println("COUNTEREXAMPLE for m=2 and n=$n")
-                counterbool=true
+                counterbool=trueinc
             end
         end
         if !counterbool
@@ -28,13 +28,12 @@ using BitIntegers
 
     function multiplicativetest()
         bound=293
+        counterbool=false
         for m in 3:bound
-            pₘ=partition_number_leq(Int1024,Int1024(m),Int1024(m))
+            pₘ=QuadraticPartitions.partition_number_leq_array(Int1024,Int1024(m),Int1024(m))
             for n in 3:Int(floor(asymptoticbound(m)))
-                pₙ=partition_number_leq(Int1024,Int1024(n),Int1024(n))
-                println(pₙ)
-                pₓ=partition_number_leq(Int1024,Int1024(m*n),Int1024(m*n))
-                println(pₓ)
+                pₙ=QuadraticPartitions.partition_number_leq_array(Int1024,Int1024(n),Int1024(n))
+                pₓ=QuadraticPartitions.partition_number_leq_array(Int1024,Int1024(m*n),Int1024(m*n))
                 if (pₘ*pₙ)≤pₓ
                     println("Checked m=$m and n=$n: NO COUNTEREXAMPLE")
                 end
@@ -51,10 +50,5 @@ using BitIntegers
 
     function asymptoticbound(m)
         return 1/((m-2)^2)*(10*√2*√(m*(m+3)^2/((m-2)^4))*m^2+2*m^2-40*√2*√(m*(m+3)^2/((m-2)^4))*m+37*m+40*√2*√(m*(m+3)^2/((m-2)^4))+18)
-    end
-
-    function stacktest()
-        pₓ=partition_number_leq(Int1024,Int1024(879),Int1024(879))
-        return pₓ
     end
 end
