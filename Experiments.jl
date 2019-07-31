@@ -496,7 +496,7 @@ function process_grid(t::Type,filename,D)
   #  the array at all, then there are no missings
   #  in between the first row and the first
   #  negative value.
-  ovflow_occurs = foldl((accum,x) -> accum && (ismissing(x) || x), grid .< 0)
+  ovflow_occurs = foldl((accum,x) -> accum || (ismissing(x) ? false : x), grid .< 0)
   if ovflow_occurs
     ovflowind = findfirst(grid[1,:] .< 0)
     ovflowind == nothing && return grid

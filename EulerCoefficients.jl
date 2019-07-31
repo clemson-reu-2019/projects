@@ -27,8 +27,9 @@ COEF_DATA = Dict{Tuple{Int,Bool},Matrix{Union{Int, Missing}}}()
 reset_coefs() = (global COEF_DATA = Dict{Tuple{Int,Bool},Matrix{Union{Int, Missing}}}())
 
 function readdlm_withmissings(t::Type,filename)
-  M = convert(Matrix{Any}, readdlm(filename))
-  M[M .== "missing"] .= missing
+  M = readdlm(filename, String) 
+  #M[M .== "missing"] .= missing
+  M = map(entry -> (entry == "missing" && return missing; parse(t,entry)), M)
   convert(Matrix{Union{t, Missing}},M)
 end
 export readdlm_withmissings
