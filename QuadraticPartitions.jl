@@ -284,7 +284,11 @@ function partitions_grid(t::Type,N,D,allpositive=false,alg=nothing,data=nothing)
   for i = zero(t):N
     for j = zero(t):maxB
       if is_wholly_positive(i,j,D)
-        A[i+1,j+1] = alg(i,j,D,allpositive,data)
+        if data == nothing
+          A[i+1,j+1] = alg(i,j,D,allpositive)
+        else
+          A[i+1,j+1] = alg(i,j,D,allpositive,data)[2]
+        end
       end
     end
   end
@@ -625,7 +629,9 @@ To start anew, data must be an array
 full of missings but which has data[1,1] == 1
 at the intex (1,1).
 """
-function partition_number_dynamic(a,b,D,data,verbose=false)
+function partition_number_dynamic(a,b,D,allpositive=false,data=nothing,verbose=false)
+  allpositive && ( throw(ArgumentError("Unsupported!")) )
+  data == nothing && ( throw(ArgumentError("This algorithm requires data.")) )
   # assumes p(0,0) is 1!!!
   p(a,b) = data[abs(b)+1,a+1]
 
