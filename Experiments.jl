@@ -575,4 +575,20 @@ function testdynamicalgdiffdata(a,a₀,D,table)
   data
 end
 
+function create_emptygrid(size,D)
+  bSize = highestBFor(size,D)
+  grid = Matrix{Union{Int1024,Missing}}(missing,bSize+1,size+1)
+  grid[1,1] = 1
+  grid
+end
+
+function best_partition_function()
+ p(i,j,D,allpos,data) = QuadraticPartitions.
+                  partition_number_dynamic(i,j,D,allpos,data,true) 
+end
+
+# I've been running tests with this:
+# mydata = @time Experiments.QuadraticPartitions.partitions_grid(Int1024,1000,D,false,p,grid)
+# where p and grid are created using best_partition_function() and create_emptygrid()
+
 end#module
