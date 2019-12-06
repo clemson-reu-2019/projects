@@ -252,13 +252,16 @@ function highestBFor(a,D)
 end
 
 
-function comparepellclasses(N,D=2,unit=(3,2),allclasses=nothing)
+"""
+The quantity N is a bound on the solution, not a  norm???
+"""
+function comparepellclasses(N,D=2,unit=(3,2),allclasses=nothing,partition_number=QuadraticPartitions.partition_number)
   allclasses == nothing && (allclasses = findpellclasses(N,D,unit))
   println("Evaluating all pell classes for counterexample")
   outliers = filter(pair -> 1 < length(pair[2]),allclasses)
   for (norm,classes) in outliers
     # minimum a
-    part_nums = zeros(Int,length(classes))
+    part_nums = zeros(typeof(N),length(classes))
     for i = 1:length(classes)
       minind = argmin(map(t -> t[1],classes[i]))
       part_nums[i] = partition_number(classes[i][minind]...,D)
