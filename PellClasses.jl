@@ -64,29 +64,28 @@ function addconjugates(pellclass)
 end
 
 """
-Find all pell classes which have a primitive
-solution which is bounded by A
+Find all pell classes which norm less than N
 """
-function findpellclasses(A,D=2,unit=(3,2),ignoreconj=true)
-  norms = generate_norm_array(A,D)
+function findpellclasses(N,D=2,unit=(3,2),ignoreconj=true)
+  boundOnRealEmbd = ceil(Int,√(N*(unit[1] + unit[2]*√D)))
+  norms = generate_norm_array(boundOnRealEmbd,D)
   classes = Dict{Int,Array{PellClass{Int}}}()
   #boundOnFundSol = floor(Int,N/√(unit[1] + unit[2]*√D))
-  boundOnFundSol = floor(Int,A^2/(unit[1] + unit[2]*√D))
 
   pushclass(c,i) = haskey(classes,i) ? push!(classes[i], c) : classes[i] = [c]
 
-  for i = 1:boundOnFundSol
+  for i = 1:N
     matches = [(ind[1],ind[2]) for ind in findall(norms .== i)]
     matches = map(m -> m .- 1, matches)
 
     while 0 < length(matches)
-      firstclass = pellClassFor(matches[1]...,D,unit,A)
+      firstclass = pellClassFor(matches[1]...,D,unit,boundOnRealEmbd)
       pushclass(firstclass, i)
 
       if !ignoreconj
         conj = (matches[1][1], -matches[1][2])
         if !(conj in firstclass)
-          conjclass = pellClassFor(conj...,D,unit,A)
+          conjclass = pellClassFor(conj...,D,unit,boundOnRealEmbd)
           pushclass(conjclass, i)
         end
       end
@@ -113,7 +112,7 @@ end
 export pellthetafn
 
 function pellthetafn(N,D,unit,ignoreconj)
-  pellclasses_to_thetafn(findpellclasses(N,D,unit,ignoreconj))
+  pellthetafn(findpellclasses(N,D,unit,ignoreconj))
 end
 
 """

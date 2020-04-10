@@ -192,6 +192,7 @@ end
 
 # BRUTE FORCE ALGORITHM USING DECOMPOSITIONS
 
+# there is a bug if b \neq 0
 function quad_partitions_decomp(a,b,d,allpositive=false)
   allpositive && throw(ArgumentError("Ok++ not supported!"))
   ps = Set([])
@@ -591,7 +592,7 @@ end
 
 # DYNAMIC ALGORITHM USING GENERATING FUNCTIONOLOGY
 
-function calc_partition_num(a,b,D,recurs)
+function calc_partition_num(a,b,D,recurs,allTtllyLess)
   (a,b) == (0,0) && return 1
   !is_wholly_positive(a,b,D) && return 0
   (a,b) == (1,0) && return 1
@@ -610,10 +611,9 @@ function calc_partition_num(a,b,D,recurs)
   gcid((a,b)) = gcd(a,b)
 
   n = (a,b)
-  whollyLessThanN = TotallyLess.listPoints(a,b,D,true)
   total = (0,0)
 
-  for m in reverse(whollyLessThanN)
+  for m in reverse(allTtllyLess(a,b,D,true))
     p_nminusm = recurs((n .- m)...)
     #l = n .- m
     g = gcid(m)
@@ -629,7 +629,8 @@ To start anew, data must be an array
 full of missings but which has data[1,1] == 1
 at the intex (1,1).
 """
-function partition_number_dynamic(a,b,D,allpositive=false,data=nothing,verbose=false)
+function partition_number_dynamic(a,b,D,allpositive=false,data=nothing,
+                                  verbose=false,allTtllyLess=TotallyLess.listPoints)
   allpositive && ( throw(ArgumentError("Unsupported!")) )
   data == nothing && ( throw(ArgumentError("This algorithm requires data.")) )
   # assumes p(0,0) is 1!!!
@@ -638,12 +639,11 @@ function partition_number_dynamic(a,b,D,allpositive=false,data=nothing,verbose=f
   val = p(a,b)
   !ismissing(val) && ( return (data,val) )
 
-  allTtllyLess = TotallyLess.listPoints(a,b,D,true)
-  for (c,d) in allTtllyLess
+  for (c,d) in allTtllyLess(a,b,D,true)
     !ismissing(p(c,d)) && ( continue )
 
     # calculate the partition number for (c,d)
-    data[abs(d)+1,c+1] = calc_partition_num(c,d,D,p)
+    data[abs(d)+1,c+1] = calc_partition_num(c,d,D,p,allTtllyLess)
     verbose && ( nm = p(c,d) ; println("($c,$d): $nm"))
   end
 

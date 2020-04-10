@@ -26,6 +26,9 @@ function conjugatetest(d,n)
     end
 end
 
+"""
+
+"""
 function differencetest(d,n,D)
     A=Array{Int64}[]
     for b₁ in 0:Int(floor(n/√d))

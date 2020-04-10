@@ -19,6 +19,7 @@ using LsqFit
 using Primes
 using OffsetArrays
 using BitIntegers
+using HomotopyContinuation
 
 function O_plusplus_vis(D)
   # first index is a, second is b
@@ -92,7 +93,7 @@ function get_distinguished_element(a,b,D=3)
   xᵢ = x₀
   while true
   i += 1
-  xᵢ₊₁ = simplify(xᵢ * expand(unit^i))
+  xᵢ₊₁ = simplify(xᵢ * Sympy.expand(unit^i))
   (a, b) = parts(xᵢ₊₁)
   if is_wholly_positive(a,b,D) &&
     abs(a^2 + b^2) < abs(a_best^2 + b_best^2) # euclidean norm
@@ -188,6 +189,23 @@ end
 
 quadratic_mult((a,b),(c,d),D) = (a*c + D*b*d, b*c + a*d)
 
+"""
+(a,b) / (c,d)
+"""
+function quadratic_div((a,b),(c,d),D)
+  cd_norm = c^2 - D*d^2
+  cd_inv = (c // cd_norm,-d//cd_norm)
+  quadratic_mult((a,b),cd_inv,D)
+end
+
+"""
+quadratic_power((a,b),N,D)
+
+raises (a,b) to the Nth power in Q(√D)
+
+Note that this is implemented naively, so that it only
+works for N an integer.
+"""
 function quadratic_power((a,b),N,D)
   prod = (1,0)
   for i = 1:N
@@ -251,29 +269,152 @@ function highestBFor(a,D)
   floor(Int, a / √D)
 end
 
+function partition_nums_for_classes(classes,D,p)
+  part_nums = zeros(typeof(p(1,0,D)),length(classes))
+  for i = 1:length(classes)
+    minind = argmin(map(t -> t[1],classes[i]))
+    part_nums[i] = p(classes[i][minind]...,D)
+  end
+  part_nums
+end
 
 """
-The quantity N is a bound on the solution, not a  norm???
+comparepellclasses(N,D,unit,allclasses,partition_number)
+This method finds counterexamples to the Pell Class conjecture
+
+Example:
+
+comparepellclasses(100,3,(2,1),nothing,p)
+
+calculates the counterexamples which have norm less than 100,
+which reside in the field Q(√3), where the partition function
+p is used to calculate partition numbers. 
+The allclasses parameter is 
+to put a pre-calculated list of pell classes, if you want.
+Putting "nothing" make the function calculate its own pell classes.
+
+The quantity N is a norm, and this will search for counterexamples
+for classes which have norm less than N.
 """
 function comparepellclasses(N,D=2,unit=(3,2),allclasses=nothing,partition_number=QuadraticPartitions.partition_number)
   allclasses == nothing && (allclasses = findpellclasses(N,D,unit))
   println("Evaluating all pell classes for counterexample")
   outliers = filter(pair -> 1 < length(pair[2]),allclasses)
+
+  counterexes = []
   for (norm,classes) in outliers
     # minimum a
-    part_nums = zeros(typeof(N),length(classes))
-    for i = 1:length(classes)
-      minind = argmin(map(t -> t[1],classes[i]))
-      part_nums[i] = partition_number(classes[i][minind]...,D)
-    end
+    part_nums = partition_nums_for_classes(classes,D,partition_number)
+    #part_nums = zeros(typeof(N),length(classes))
+    #for i = 1:length(classes)
+    #  minind = argmin(map(t -> t[1],classes[i]))
+    #  part_nums[i] = partition_number(classes[i][minind]...,D)
+    #end
     #println("$part_nums")
     if !allunique(part_nums)
-      println("Counterexample found! $norm")
+      println("Counterexample to PC conjecture found! $norm")
+      push!(counterexes, norm)
     end
   end
-  outliers
+  eval = x -> outliers[x]
+  (counterexes, eval.(counterexes))
 end
 
+function all_PC_counterexamples(N,A,partition_number)
+  ALL = []
+  for a in A
+    println()
+    println("Starting for d=$a")
+    PCs = comparepellclasses(N,a,fund_unit(a),nothing,partition_number)
+    push!(ALL,PCs)
+  end
+  ALL
+end
+
+function find_norminv_counterex(N,D,unit,allclasses,partition_number=QuadraticPartitions.partition_number)
+  allclasses == nothing && (allclasses = findpellclasses(N,D,unit))
+  println("Evaluating all pell classes for counterexample")
+  pnums = fill(Array{typeof(partition_number(1,0,D)),1}(), N)
+
+  for (norm,classes) in allclasses
+    pnums[norm] = partition_nums_for_classes(classes,D,partition_number)
+  end
+
+  println("counterexamples are of the form (norm1,norm2,partition_number)")
+
+
+  counterexes = []
+  #maybe not the most efficient but oh well.
+
+  # this should be O(n^2), because the 
+  #  number of pell classes is so small in comparison 
+  #  to the number of possible norms.
+
+  # also this will print any duplicates from the same
+  # norm twice, a quirk that makes it technically incorrect but
+  # possibly useful for identifying this class of examples.
+  for i in 1:length(pnums)
+    for j in i:length(pnums)
+      for i_pnum in 1:length(pnums[i])
+        for j_pnum in 1:length(pnums[j])
+          (i,i_pnum) == (j,j_pnum) && continue
+          p = pnums[i][i_pnum]
+          q = pnums[j][j_pnum]
+          if p == q 
+            print("Counterexample Found!")
+            println(" ($i,$j,$p)")
+            push!(counterexes, (i,j,p))
+          end
+        end
+      end
+    end
+  end
+
+  (counterexes, allclasses)
+end
+
+function fund_unit(d)
+  F = Dict(
+           2 => (3,2),
+           3 => (2,1),
+           5 => (9,4),
+           6 => (5,2),
+           7 => (8,3),
+           10 => (19,6),
+           11 => (10,3),
+           13 => (649,180),
+           14 => (15,4),
+           15 => (4,1),
+           17 => (33,8),
+           19 => (170,39),
+           21 => (55,12),
+           22 => (197,42),
+           23 => (24,5),
+           26 => (51,10),
+           #29 => (9801,1820),
+           30 => (11,2),
+           31 => (1520,273),
+           33 => (23,4),
+           34 => (35,6),
+           35 => (6,1),
+           70 => (251,30),
+          )
+  F[d]
+end
+
+function num_pn_norminv_counterexes(d,p)
+  CE = Experiments.find_norminv_counterex(1000,d,fund_unit(d),nothing,p)[1]
+  p3((x,y,z)) = z
+  length(unique(p3.(CE)))
+end
+
+all_unique_keys_sorted(dict) = sort(unique(collect(keys(dict))))
+  
+
+"""
+gives the numbers in X which are in the set of primes from 1 to N, 
+mod n
+"""
 function primesmod(N,n,X)
 	return filter!((x)->mod(x,n) in X,Primes.primes(N))
 end
@@ -347,6 +488,12 @@ function find_congruences(p,base,mults,mods,offsets,N)
 end
 
 find_congruences(p,mults,mods,offsets,N) = find_congruences(p,(1,0),mults,mods,offsets,N)
+
+function norm_representations(N,D)
+  norms = [a^2 - D*b^2 for a=0:N,b=0:N]
+  norms[norms .< 0] .= 0
+  sort!(unique(norms))
+end
 
 function sums_of_norms(N,D,unit,num=2,allowneg=false)
   norms = [a^2 - D*b^2 for a=0:N,b=0:N]
@@ -586,12 +733,77 @@ function create_emptygrid(size,D)
 end
 
 function best_partition_function()
- p(i,j,D,allpos,data) = QuadraticPartitions.
+  p(i,j,D,allpos,data) = QuadraticPartitions.
                   partition_number_dynamic(i,j,D,allpos,data,true) 
 end
+
+function best_partition_function(f)
+  p(i,j,D,allpos,data) = QuadraticPartitions.
+                  partition_number_dynamic(i,j,D,allpos,data,true,
+                       QuadraticPartitions.TotallyLess.listPointsConductor(f))
+end
+  
 
 # I've been running tests with this:
 # mydata = @time Experiments.QuadraticPartitions.partitions_grid(Int1024,1000,D,false,p,grid)
 # where p and grid are created using best_partition_function() and create_emptygrid()
+
+#julia> A = [  2
+#         3
+#         5
+#         6
+#         7
+#        10
+#        11
+#        13
+#        14
+#        15
+#        17
+#        19
+#        21
+#        22
+#        23
+#        26
+#         31
+#        33
+#        34
+#        35
+#       70]
+
+function compare_normcexes_to_units(grids,Ds)
+  p(a,b,D) = grids[D][b+1,a+1]
+  normcexes = Experiments.num_pn_norminv_counterexes.(Ds,p)
+
+  p1((x,y)) = x
+  as = p1.(Experiments.fund_unit.(Ds))
+
+  p2((x,y)) = y
+  bs = p2.(Experiments.fund_unit.(Ds))
+
+  plot(log.((as.^2) + (bs .^ 2)), normcexes,seriestype=:scatter,
+       xlabel="size of fundamental unit: log (a^2 + b^2)",
+       ylabel="number of counterexamples to norm invariance")
+
+  res = Experiments.linreg(log.((as.^2) + (bs .^ 2)),normcexes)
+  plot!(x -> coef(res)[1] *x + coef(res)[2])
+end
+
+# Experiments.QuadraticPartitions.quad_partitions_decomp(8,0,2)
+# filter(arr -> reduce((accum,(a,b)) -> (accum && (b % 2 == 0)), arr, init=true), eightPartitions)
+
+function partitions_decomp_restrict(a,b,D,conductor)
+  b % conductor == 0 || (return missing)
+  dec_partitions = QuadraticPartitions.quad_partitions_decomp(a,b,D)
+  filter(arr -> reduce((accum,(a,b)) -> (accum && (b % conductor == 0)), 
+                       arr, init=true), 
+         dec_partitions)
+end
+
+function partition_number_decomp_restrict(a,b,D,conductor)
+  b % conductor == 0 || (return missing)
+  length(partitions_decomp_restrict(a,b,D,conductor))
+end 
+
+
 
 end#module
