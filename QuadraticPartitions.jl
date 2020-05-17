@@ -283,7 +283,7 @@ function partitions_grid(t::Type,N,D,allpositive=false,alg=nothing,data=nothing)
   maxB = floor(Int, N / √D)
   A = zeros(t,N+1,maxB+1)
   for i = zero(t):N
-    for j = zero(t):maxB
+    Threads.@threads for j = zero(t):maxB
       if is_wholly_positive(i,j,D)
         if data == nothing
           A[i+1,j+1] = alg(i,j,D,allpositive)
@@ -644,7 +644,7 @@ function partition_number_dynamic(a,b,D,allpositive=false,data=nothing,
 
     # calculate the partition number for (c,d)
     data[abs(d)+1,c+1] = calc_partition_num(c,d,D,p,allTtllyLess)
-    verbose && ( nm = p(c,d) ; println("($c,$d): $nm"))
+    verbose && ( nm = p(c,d) ; println("($c,$d): $nm thread $(Threads.threadid())"))
   end
 
   (data,p(a,b))
