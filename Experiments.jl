@@ -20,6 +20,8 @@ using Primes
 using OffsetArrays
 using BitIntegers
 using HomotopyContinuation
+using BitIntegers
+using DelimitedFiles
 
 function O_plusplus_vis(D)
   # first index is a, second is b
@@ -803,6 +805,16 @@ function partition_number_decomp_restrict(a,b,D,conductor)
   b % conductor == 0 || (return missing)
   length(partitions_decomp_restrict(a,b,D,conductor))
 end 
+
+function compute_partition_numbers(D,maxA)
+  p = best_partition_function()
+  grid = create_emptygrid(maxA,D)
+
+  data = @time Experiments.QuadraticPartitions.partitions_grid(Int1024,maxA,D,false,p,grid)
+  writedlm("data/grid$(D)_$maxA.data",data)
+  println("Data written to file")
+end
+
 
 
 
