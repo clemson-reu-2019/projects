@@ -5,6 +5,9 @@ include("./TotallyLess.jl")
 include("./OnePart.jl")
 include("./PellClasses.jl")
 
+import Base.Threads.@spawn
+import Base.Threads.@sync
+
 using Combinatorics
 using Memoize
 using Primes
@@ -283,12 +286,12 @@ function partitions_grid(t::Type,N,D,allpositive=false,alg=nothing,data=nothing)
   maxB = floor(Int, N / √D)
   A = zeros(t,N+1,maxB+1)
   for i = zero(t):N
-    Threads.@threads for j = zero(t):maxB
+    @sync for j = zero(t):maxB
       if is_wholly_positive(i,j,D)
         if data == nothing
           A[i+1,j+1] = alg(i,j,D,allpositive)
         else
-          A[i+1,j+1] = alg(i,j,D,allpositive,data)[2]
+          @spawn A[i+1,j+1] = alg(i,j,D,allpositive,data)[2]
         end
       end
     end
